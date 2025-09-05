@@ -1,0 +1,63 @@
+<svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background circle -->
+  <circle
+    cx="16"
+    cy="16"
+    r="15"
+    fill="url(#logoGradient)"
+    stroke="url(#logoBorder)"
+    stroke-width="2"
+  />
+  
+  <!-- Credit score gauge arc -->
+  <path
+    d="M8 20 C8 12, 24 12, 24 20"
+    stroke="#ffffff"
+    stroke-width="2"
+    fill="none"
+    stroke-linecap="round"
+  />
+  
+  <!-- Score indicator needle -->
+  <path
+    d="M16 20 L20 16"
+    stroke="#ffffff"
+    stroke-width="2"
+    stroke-linecap="round"
+  />
+  
+  <!-- Central dot -->
+  <circle
+    cx="16"
+    cy="20"
+    r="1.5"
+    fill="#ffffff"
+  />
+  
+  <!-- Blockchain dots for network effect -->
+  <circle cx="10" cy="12" r="1" fill="#ffffff" opacity="0.7" />
+  <circle cx="22" cy="12" r="1" fill="#ffffff" opacity="0.7" />
+  <circle cx="16" cy="8" r="1" fill="#ffffff" opacity="0.7" />
+  
+  <!-- Connecting lines for network -->
+  <path
+    d="M10 12 L16 8 L22 12"
+    stroke="#ffffff"
+    stroke-width="0.5"
+    opacity="0.5"
+  />
+  
+  <defs>
+    <!-- Primary gradient matching brand colors -->
+    <linearGradient id="logoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0ea5e9" />
+      <stop offset="100%" stop-color="#0284c7" />
+    </linearGradient>
+    
+    <!-- Border gradient -->
+    <linearGradient id="logoBorder" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0284c7" />
+      <stop offset="100%" stop-color="#075985" />
+    </linearGradient>
+  </defs>
+</svg>

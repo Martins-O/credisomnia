@@ -1,0 +1,22 @@
+{
+  "name": "Credisomnia",
+  "short_name": "Credisomnia",
+  "description": "DeFi Credit Scoring & Lending Platform",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/logo.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml"
+    }
+  ],
+  "theme_color": "#0ea5e9",
+  "background_color": "#ffffff",
+  "display": "standalone",
+  "start_url": "/"
+}
