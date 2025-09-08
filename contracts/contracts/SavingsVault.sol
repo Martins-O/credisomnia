@@ -333,14 +333,16 @@ contract SavingsVault is ISavingsVault, CredisomniaSecurity {
         uint256 totalBalance = account.principal + account.accruedInterest;
         require(totalBalance > 0, "SavingsVault: No balance to withdraw");
 
+        // Store principal before clearing for global tracking update
+        uint256 principalAmount = account.principal;
+
         // Clear account
         account.principal = 0;
         account.accruedInterest = 0;
         account.isActive = false;
 
-        // Update global tracking
-        totalValueLocked = totalValueLocked -
-            (account.principal > totalValueLocked ? totalValueLocked : account.principal);
+        // Update global tracking with safe subtraction
+        totalValueLocked = totalValueLocked > principalAmount ? totalValueLocked - principalAmount : 0;
 
         // Transfer tokens
         depositToken.safeTransfer(to, totalBalance);

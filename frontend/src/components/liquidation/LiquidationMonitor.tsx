@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useAccount } from 'wagmi'
 import { Address } from 'viem'
 import { useLendingPool, calculateHealthFactor, formatTokenAmount } from '@/lib/hooks/useContracts'
@@ -56,6 +56,23 @@ export default function LiquidationMonitor() {
   // Filter for only liquidatable loans
   const liquidatableLoans = liquidationCandidates.filter(loan => loan.isLiquidatable)
 
+  // Mock function to refresh liquidation data
+  const refreshLiquidationData = useCallback(async () => {
+    // TODO: Implement actual loan fetching from contract events or indexer
+    // For now, this would require either:
+    // 1. Adding a getAllLoans function to the contract
+    // 2. Using event logs to track all loans
+    // 3. Using a backend service/subgraph to index loan data
+    
+    // Placeholder for actual implementation - would fetch from contract/API
+    const loans: LoanDetails[] = []
+    
+    setAllLoans(loans)
+    setLiquidationTargets(loans.filter(loan => 
+      calculateHealthFactor(loan.collateralAmount, loan.outstandingAmount) < 1.0
+    ))
+  }, [setLiquidationTargets])
+
   // Auto-refresh functionality
   useEffect(() => {
     if (autoRefresh) {
@@ -75,49 +92,12 @@ export default function LiquidationMonitor() {
         setRefreshInterval(null)
       }
     }
-  }, [autoRefresh])
-
-  // Mock function to refresh liquidation data
-  const refreshLiquidationData = async () => {
-    // In a real app, this would fetch from contract events or backend API
-    // For now, we'll simulate with mock data
-    const mockLoans: LoanDetails[] = [
-      {
-        loanId: 1n,
-        borrower: '0x1234567890123456789012345678901234567890' as Address,
-        principalAmount: 10000n * 10n**18n,
-        outstandingAmount: 11000n * 10n**18n,
-        collateralAmount: 12000n * 10n**18n, // Healthy loan
-        interestRate: 800n,
-        startTimestamp: BigInt(Date.now() / 1000 - 86400),
-        dueTimestamp: BigInt(Date.now() / 1000 + 86400 * 30),
-        lastPaymentTime: BigInt(Date.now() / 1000 - 3600),
-        status: 0,
-      },
-      {
-        loanId: 2n,
-        borrower: '0x2345678901234567890123456789012345678901' as Address,
-        principalAmount: 5000n * 10n**18n,
-        outstandingAmount: 5500n * 10n**18n,
-        collateralAmount: 4000n * 10n**18n, // Unhealthy loan - liquidatable
-        interestRate: 800n,
-        startTimestamp: BigInt(Date.now() / 1000 - 86400 * 7),
-        dueTimestamp: BigInt(Date.now() / 1000 + 86400 * 23),
-        lastPaymentTime: BigInt(Date.now() / 1000 - 86400),
-        status: 0,
-      },
-    ]
-    
-    setAllLoans(mockLoans)
-    setLiquidationTargets(mockLoans.filter(loan => 
-      calculateHealthFactor(loan.collateralAmount, loan.outstandingAmount) < 1.0
-    ))
-  }
+  }, [autoRefresh, refreshInterval, refreshLiquidationData])
 
   // Initialize data
   useEffect(() => {
     refreshLiquidationData()
-  }, [])
+  }, [refreshLiquidationData])
 
   // Handle liquidation
   const handleLiquidate = async (loan: LiquidationCandidate) => {

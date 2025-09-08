@@ -1,11 +1,17 @@
 import './globals.css';
 import { Providers } from './providers';
-import { Metadata } from 'next';
+import { Metadata, Viewport } from 'next';
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  themeColor: '#0ea5e9',
+};
 
 export const metadata: Metadata = {
   title: 'Credisomnia - DeFi Credit Scoring & Lending',
   description: 'Revolutionary DeFi credit scoring and lending platform with soulbound NFTs',
-  viewport: 'width=device-width, initial-scale=1',
+  metadataBase: new URL('https://credisomnia.com'),
   icons: {
     icon: [
       { url: '/favicon.svg', type: 'image/svg+xml' },
@@ -29,7 +35,6 @@ export const metadata: Metadata = {
       },
     ],
   },
-  themeColor: '#0ea5e9',
   openGraph: {
     type: 'website',
     url: 'https://credisomnia.com/',

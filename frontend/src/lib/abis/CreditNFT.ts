@@ -1,5 +1,5 @@
 // Auto-generated ABI for CreditNFT
-// Generated on: 2025-09-05T17:17:34.185Z
+// Generated on: 2025-09-08T06:43:24.480Z
 
 export const CreditNFTABI = [
   {

@@ -5,6 +5,7 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "./interfaces/ILendingPool.sol";
 import "./interfaces/ICreditOracle.sol";
+import "./interfaces/IFlashLoanReceiver.sol";
 import "./security/CredisomniaSecurity.sol";
 
 /**
@@ -63,6 +64,15 @@ contract LendingPool is ILendingPool, CredisomniaSecurity {
     
     /// @dev Whether lending is paused
     bool public lendingPaused;
+
+    /// @dev Flash loan premium rate in basis points (9 = 0.09%)
+    uint256 public flashLoanPremiumRate = 9;
+    
+    /// @dev Total flash loan fees collected
+    uint256 public totalFlashLoanFees;
+    
+    /// @dev Flash loan execution tracking for reentrancy protection
+    mapping(address => bool) private _flashLoanExecuting;
 
     modifier onlyWhenLendingNotPaused() {
         require(!lendingPaused, "LendingPool: Lending is paused");
@@ -340,6 +350,8 @@ contract LendingPool is ILendingPool, CredisomniaSecurity {
         uint256 liquidationBonusAmount = liquidationAmount * liquidationBonus / 10000;
         uint256 totalLiquidationAmount = liquidationAmount + liquidationBonusAmount;
 
+        // Validate liquidation amount doesn't exceed debt owed
+        require(liquidationAmount <= totalOwed, "LendingPool: Liquidation amount exceeds debt owed");
         require(totalLiquidationAmount <= loan.collateralAmount, "LendingPool: Insufficient collateral for liquidation");
 
         // Transfer liquidation amount from liquidator
@@ -548,5 +560,101 @@ contract LendingPool is ILendingPool, CredisomniaSecurity {
         loan.collateralAmount = 0;
 
         emit LoanDefaulted(loanId, loan.borrower, collateralSeized);
+    }
+
+    /**
+     * @inheritdoc ILendingPool
+     */
+    function flashLoan(
+        address receiverAddress,
+        address asset,
+        uint256 amount,
+        bytes calldata params
+    ) external override nonReentrant onlyWhenNotPaused onlyWhenLendingNotPaused {
+        require(receiverAddress != address(0), "LendingPool: Invalid receiver address");
+        require(asset == address(loanToken), "LendingPool: Unsupported asset");
+        require(amount > 0, "LendingPool: Amount must be greater than 0");
+        require(!_flashLoanExecuting[receiverAddress], "LendingPool: Flash loan already executing");
+        
+        uint256 availableLiquidity = getAvailableLiquidity();
+        require(amount <= availableLiquidity, "LendingPool: Insufficient liquidity for flash loan");
+        
+        uint256 premium = getFlashLoanFee(amount);
+        uint256 amountPlusPremium = amount + premium;
+        
+        // Record balances before flash loan
+        uint256 balanceBefore = loanToken.balanceOf(address(this));
+        require(balanceBefore >= amount, "LendingPool: Insufficient balance for flash loan");
+        
+        // Set reentrancy protection
+        _flashLoanExecuting[receiverAddress] = true;
+        
+        // Transfer loan amount to receiver
+        loanToken.safeTransfer(receiverAddress, amount);
+        
+        // Call receiver's executeOperation
+        bool success = IFlashLoanReceiver(receiverAddress).executeOperation(
+            asset,
+            amount,
+            premium,
+            msg.sender,
+            params
+        );
+        require(success, "LendingPool: Flash loan execution failed");
+        
+        // Clear reentrancy protection
+        _flashLoanExecuting[receiverAddress] = false;
+        
+        // Verify repayment
+        uint256 balanceAfter = loanToken.balanceOf(address(this));
+        require(balanceAfter >= balanceBefore + premium, "LendingPool: Flash loan not repaid with premium");
+        
+        // Update flash loan fee tracking
+        totalFlashLoanFees += premium;
+        
+        // Add premium to total liquidity (revenue for liquidity providers)
+        totalLiquidity += premium;
+        
+        emit FlashLoan(receiverAddress, msg.sender, asset, amount, premium);
+    }
+
+    /**
+     * @inheritdoc ILendingPool
+     */
+    function getFlashLoanFee(uint256 amount) public view override returns (uint256) {
+        return (amount * flashLoanPremiumRate) / 10000;
+    }
+
+    /**
+     * @inheritdoc ILendingPool
+     */
+    function getFlashLoanPremiumRate() external view override returns (uint256) {
+        return flashLoanPremiumRate;
+    }
+
+    /**
+     * @dev Updates the flash loan premium rate (admin only)
+     * @param newRate New premium rate in basis points
+     */
+    function setFlashLoanPremiumRate(uint256 newRate) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        require(newRate <= 1000, "LendingPool: Premium rate too high"); // Max 10%
+        flashLoanPremiumRate = newRate;
+    }
+
+    /**
+     * @dev Gets the total flash loan fees collected
+     * @return Total flash loan fees in loan token
+     */
+    function getTotalFlashLoanFees() external view returns (uint256) {
+        return totalFlashLoanFees;
+    }
+
+    /**
+     * @dev Checks if a flash loan is currently executing for an address
+     * @param account Address to check
+     * @return True if flash loan is executing
+     */
+    function isFlashLoanExecuting(address account) external view returns (bool) {
+        return _flashLoanExecuting[account];
     }
 }

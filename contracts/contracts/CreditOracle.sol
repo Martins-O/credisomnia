@@ -38,6 +38,9 @@ contract CreditOracle is ICreditOracle, CredisomniaSecurity {
     /// @dev Time constants
     uint256 public constant SCORE_UPDATE_COOLDOWN = 1 hours;
     uint256 public constant STREAK_RESET_THRESHOLD = 30 days;
+    
+    /// @dev Global score update cooldown tracking (prevents bypass via different contracts)
+    mapping(address => uint256) private lastGlobalScoreUpdate;
 
     modifier onlyAuthorized() {
         require(
@@ -294,8 +297,8 @@ contract CreditOracle is ICreditOracle, CredisomniaSecurity {
     function _updateCreditScore(address user) internal {
         CreditProfile storage profile = creditProfiles[user];
         
-        // Prevent too frequent updates
-        if (block.timestamp < profile.lastScoreUpdate + SCORE_UPDATE_COOLDOWN) {
+        // Prevent too frequent updates using global cooldown (prevents bypass via different contracts)
+        if (block.timestamp < lastGlobalScoreUpdate[user] + SCORE_UPDATE_COOLDOWN) {
             return;
         }
 
@@ -304,6 +307,7 @@ contract CreditOracle is ICreditOracle, CredisomniaSecurity {
         
         profile.creditScore = newScore;
         profile.lastScoreUpdate = block.timestamp;
+        lastGlobalScoreUpdate[user] = block.timestamp;
 
         emit CreditScoreUpdated(user, oldScore, newScore);
     }

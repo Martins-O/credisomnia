@@ -1,5 +1,5 @@
 // Auto-generated ABI for SavingsVault
-// Generated on: 2025-09-05T17:17:34.187Z
+// Generated on: 2025-09-08T06:43:24.484Z
 
 export const SavingsVaultABI = [
   {

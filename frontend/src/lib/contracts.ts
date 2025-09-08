@@ -1,7 +1,7 @@
 // Auto-generated contract addresses and ABIs
-// Generated on: 2025-09-05T17:17:34.194Z
+// Generated on: 2025-09-08T06:43:24.584Z
 
-import {
+import { 
   CreditOracleABI,
   CreditNFTABI,
   SavingsVaultABI,
@@ -58,7 +58,7 @@ export const CONTRACT_FUNCTIONS = {
     recordSavingsActivity: 'recordSavingsActivity',
     updateScoringWeights: 'updateScoringWeights',
   },
-
+  
   // Lending Pool Functions
   LENDING_POOL: {
     borrow: 'borrow',
@@ -73,7 +73,7 @@ export const CONTRACT_FUNCTIONS = {
     getTotalBorrowed: 'getTotalBorrowed',
     getAvailableLiquidity: 'getAvailableLiquidity',
   },
-
+  
   // Savings Vault Functions
   SAVINGS_VAULT: {
     deposit: 'deposit',
@@ -83,7 +83,7 @@ export const CONTRACT_FUNCTIONS = {
     calculateRewards: 'calculateRewards',
     claimRewards: 'claimRewards',
   },
-
+  
   // Credit NFT Functions
   CREDIT_NFT: {
     mintCreditNFT: 'mintCreditNFT',
@@ -97,14 +97,14 @@ export const CONTRACT_FUNCTIONS = {
 export const DEPLOYMENT_INFO = {
   "network": "Somnia Testnet",
   "chainId": 50312,
-  "timestamp": "2025-09-05T17:17:34.194Z",
+  "timestamp": "2025-09-08T06:43:24.584Z",
   "deployer": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
   "contracts": {
     "CreditOracle": {
       "address": "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0",
       "constructor": [
         "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
-        "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+        "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266", 
         "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
         "1000000000000000000000000"
       ]
@@ -114,7 +114,7 @@ export const DEPLOYMENT_INFO = {
       "constructor": [
         "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
         "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
-        "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+        "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266", 
         "1000000000000000000000000",
         null
       ]
@@ -127,7 +127,7 @@ export const DEPLOYMENT_INFO = {
         "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
         "1000000000000000000000000",
         null,
-        null,
+        null, 
         500
       ]
     },

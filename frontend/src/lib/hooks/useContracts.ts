@@ -42,39 +42,44 @@ export interface SavingsAccount {
 export function useCreditOracle() {
   const { writeContractAsync } = useWriteContract()
 
-  const getCreditScore = (userAddress: Address) => {
+  // Read hooks that can be used directly at component level
+  const useCreditScore = (userAddress?: Address) => {
     return useReadContract({
       address: CONTRACTS.CreditOracle.address,
       abi: CONTRACTS.CreditOracle.abi,
       functionName: 'getCreditScore',
-      args: [userAddress],
+      args: userAddress ? [userAddress] : undefined,
+      query: { enabled: !!userAddress }
     })
   }
 
-  const getCreditProfile = (userAddress: Address) => {
+  const useCreditProfile = (userAddress?: Address) => {
     return useReadContract({
       address: CONTRACTS.CreditOracle.address,
       abi: CONTRACTS.CreditOracle.abi,
       functionName: 'getCreditProfile',
-      args: [userAddress],
+      args: userAddress ? [userAddress] : undefined,
+      query: { enabled: !!userAddress }
     })
   }
 
-  const checkLoanEligibility = (userAddress: Address, loanAmount: bigint) => {
+  const useLoanEligibility = (userAddress?: Address, loanAmount?: bigint) => {
     return useReadContract({
       address: CONTRACTS.CreditOracle.address,
       abi: CONTRACTS.CreditOracle.abi,
       functionName: 'checkLoanEligibility',
-      args: [userAddress, loanAmount],
+      args: userAddress && loanAmount ? [userAddress, loanAmount] : undefined,
+      query: { enabled: !!(userAddress && loanAmount) }
     })
   }
 
-  const calculateCollateralRequirement = (userAddress: Address, loanAmount: bigint) => {
+  const useCollateralRequirement = (userAddress?: Address, loanAmount?: bigint) => {
     return useReadContract({
       address: CONTRACTS.CreditOracle.address,
       abi: CONTRACTS.CreditOracle.abi,
       functionName: 'calculateCollateralRequirement',
-      args: [userAddress, loanAmount],
+      args: userAddress && loanAmount ? [userAddress, loanAmount] : undefined,
+      query: { enabled: !!(userAddress && loanAmount) }
     })
   }
 
@@ -97,10 +102,10 @@ export function useCreditOracle() {
   }, [writeContractAsync])
 
   return {
-    getCreditScore,
-    getCreditProfile,
-    checkLoanEligibility,
-    calculateCollateralRequirement,
+    useCreditScore,
+    useCreditProfile,
+    useLoanEligibility,
+    useCollateralRequirement,
     recordRepayment,
     recordSavingsActivity,
   }
@@ -110,50 +115,53 @@ export function useCreditOracle() {
 export function useLendingPool() {
   const { writeContractAsync } = useWriteContract()
 
-  const getLoan = (loanId: bigint) => {
+  const useLoan = (loanId?: bigint) => {
     return useReadContract({
       address: CONTRACTS.LendingPool.address,
       abi: CONTRACTS.LendingPool.abi,
       functionName: 'getLoan',
-      args: [loanId],
+      args: loanId ? [loanId] : undefined,
+      query: { enabled: !!loanId }
     })
   }
 
-  const getUserLoans = (userAddress: Address) => {
+  const useUserLoans = (userAddress?: Address) => {
     return useReadContract({
       address: CONTRACTS.LendingPool.address,
       abi: CONTRACTS.LendingPool.abi,
       functionName: 'getUserLoans',
-      args: [userAddress],
+      args: userAddress ? [userAddress] : undefined,
+      query: { enabled: !!userAddress }
     })
   }
 
-  const getActiveLoanIds = (userAddress: Address) => {
+  const useActiveLoanIds = (userAddress?: Address) => {
     return useReadContract({
       address: CONTRACTS.LendingPool.address,
       abi: CONTRACTS.LendingPool.abi,
-      functionName: 'getActiveLoanIds',
-      args: [userAddress],
+      functionName: 'getUserLoans',
+      args: userAddress ? [userAddress] : undefined,
+      query: { enabled: !!userAddress }
     })
   }
 
-  const getTotalSupplied = () => {
+  const useTotalSupplied = () => {
     return useReadContract({
       address: CONTRACTS.LendingPool.address,
       abi: CONTRACTS.LendingPool.abi,
-      functionName: 'getTotalSupplied',
+      functionName: 'getTotalValueLocked',
     })
   }
 
-  const getTotalBorrowed = () => {
+  const useTotalBorrowed = () => {
     return useReadContract({
       address: CONTRACTS.LendingPool.address,
       abi: CONTRACTS.LendingPool.abi,
-      functionName: 'getTotalBorrowed',
+      functionName: 'totalBorrowed',
     })
   }
 
-  const getAvailableLiquidity = () => {
+  const useAvailableLiquidity = () => {
     return useReadContract({
       address: CONTRACTS.LendingPool.address,
       abi: CONTRACTS.LendingPool.abi,
@@ -161,11 +169,11 @@ export function useLendingPool() {
     })
   }
 
-  const borrow = useCallback(async (amount: bigint, collateralAmount: bigint, duration: bigint) => {
+  const requestLoan = useCallback(async (amount: bigint, collateralAmount: bigint, duration: bigint) => {
     return writeContractAsync({
       address: CONTRACTS.LendingPool.address,
       abi: CONTRACTS.LendingPool.abi,
-      functionName: 'borrow',
+      functionName: 'requestLoan',
       args: [amount, collateralAmount, duration],
     })
   }, [writeContractAsync])
@@ -174,7 +182,7 @@ export function useLendingPool() {
     return writeContractAsync({
       address: CONTRACTS.LendingPool.address,
       abi: CONTRACTS.LendingPool.abi,
-      functionName: 'repay',
+      functionName: 'repayLoan',
       args: [loanId, amount],
     })
   }, [writeContractAsync])
@@ -183,7 +191,7 @@ export function useLendingPool() {
     return writeContractAsync({
       address: CONTRACTS.LendingPool.address,
       abi: CONTRACTS.LendingPool.abi,
-      functionName: 'liquidate',
+      functionName: 'liquidateLoan',
       args: [loanId],
     })
   }, [writeContractAsync])
@@ -192,7 +200,7 @@ export function useLendingPool() {
     return writeContractAsync({
       address: CONTRACTS.LendingPool.address,
       abi: CONTRACTS.LendingPool.abi,
-      functionName: 'addLiquidity',
+      functionName: 'supplyLiquidity',
       args: [amount],
     })
   }, [writeContractAsync])
@@ -201,23 +209,69 @@ export function useLendingPool() {
     return writeContractAsync({
       address: CONTRACTS.LendingPool.address,
       abi: CONTRACTS.LendingPool.abi,
-      functionName: 'removeLiquidity',
+      functionName: 'withdrawLiquidity',
       args: [amount],
     })
   }, [writeContractAsync])
 
+  // Flash Loan Functions
+  const useFlashLoanPremiumRate = () => {
+    return useReadContract({
+      address: CONTRACTS.LendingPool.address,
+      abi: CONTRACTS.LendingPool.abi,
+      functionName: 'getFlashLoanPremiumRate',
+    })
+  }
+
+  const useFlashLoanFee = (amount?: bigint) => {
+    return useReadContract({
+      address: CONTRACTS.LendingPool.address,
+      abi: CONTRACTS.LendingPool.abi,
+      functionName: 'getFlashLoanFee',
+      args: amount ? [amount] : undefined,
+      query: { enabled: !!amount }
+    })
+  }
+
+  const useTotalFlashLoanFees = () => {
+    return useReadContract({
+      address: CONTRACTS.LendingPool.address,
+      abi: CONTRACTS.LendingPool.abi,
+      functionName: 'getTotalFlashLoanFees',
+    })
+  }
+
+  const executeFlashLoan = useCallback(async (
+    receiverAddress: Address, 
+    asset: Address, 
+    amount: bigint, 
+    params: `0x${string}` = '0x'
+  ) => {
+    return writeContractAsync({
+      address: CONTRACTS.LendingPool.address,
+      abi: CONTRACTS.LendingPool.abi,
+      functionName: 'flashLoan',
+      args: [receiverAddress, asset, amount, params],
+    })
+  }, [writeContractAsync])
+
   return {
-    getLoan,
-    getUserLoans,
-    getActiveLoanIds,
-    getTotalSupplied,
-    getTotalBorrowed,
-    getAvailableLiquidity,
-    borrow,
+    useLoan,
+    useUserLoans,
+    useActiveLoanIds,
+    useTotalSupplied,
+    useTotalBorrowed,
+    useAvailableLiquidity,
+    requestLoan,
     repay,
     liquidate,
     addLiquidity,
     removeLiquidity,
+    // Flash Loan functions
+    useFlashLoanPremiumRate,
+    useFlashLoanFee,
+    useTotalFlashLoanFees,
+    executeFlashLoan,
   }
 }
 
@@ -225,29 +279,31 @@ export function useLendingPool() {
 export function useSavingsVault() {
   const { writeContractAsync } = useWriteContract()
 
-  const getAccountInfo = (userAddress: Address) => {
+  const useAccountInfo = (userAddress?: Address) => {
     return useReadContract({
       address: CONTRACTS.SavingsVault.address,
       abi: CONTRACTS.SavingsVault.abi,
-      functionName: 'getAccountInfo',
-      args: [userAddress],
+      functionName: 'getSavingsAccount',
+      args: userAddress ? [userAddress] : undefined,
+      query: { enabled: !!userAddress }
     })
   }
 
-  const getTotalDeposits = () => {
+  const useTotalDeposits = () => {
     return useReadContract({
       address: CONTRACTS.SavingsVault.address,
       abi: CONTRACTS.SavingsVault.abi,
-      functionName: 'getTotalDeposits',
+      functionName: 'getTotalValueLocked',
     })
   }
 
-  const calculateRewards = (userAddress: Address) => {
+  const useCalculateRewards = (userAddress?: Address) => {
     return useReadContract({
       address: CONTRACTS.SavingsVault.address,
       abi: CONTRACTS.SavingsVault.abi,
-      functionName: 'calculateRewards',
-      args: [userAddress],
+      functionName: 'calculateAccruedInterest',
+      args: userAddress ? [userAddress] : undefined,
+      query: { enabled: !!userAddress }
     })
   }
 
@@ -269,18 +325,15 @@ export function useSavingsVault() {
     })
   }, [writeContractAsync])
 
+  // Note: This SavingsVault design auto-compounds rewards, no separate claim needed
   const claimRewards = useCallback(async () => {
-    return writeContractAsync({
-      address: CONTRACTS.SavingsVault.address,
-      abi: CONTRACTS.SavingsVault.abi,
-      functionName: 'claimRewards',
-    })
-  }, [writeContractAsync])
+    throw new Error('Rewards are automatically compounded. Use withdraw to access your balance.')
+  }, [])
 
   return {
-    getAccountInfo,
-    getTotalDeposits,
-    calculateRewards,
+    useAccountInfo,
+    useTotalDeposits,
+    useCalculateRewards,
     deposit,
     withdraw,
     claimRewards,
@@ -291,30 +344,33 @@ export function useSavingsVault() {
 export function useCreditNFT() {
   const { writeContractAsync } = useWriteContract()
 
-  const balanceOf = (userAddress: Address) => {
+  const useBalanceOf = (userAddress?: Address) => {
     return useReadContract({
       address: CONTRACTS.CreditNFT.address,
       abi: CONTRACTS.CreditNFT.abi,
       functionName: 'balanceOf',
-      args: [userAddress],
+      args: userAddress ? [userAddress] : undefined,
+      query: { enabled: !!userAddress }
     })
   }
 
-  const ownerOf = (tokenId: bigint) => {
+  const useOwnerOf = (tokenId?: bigint) => {
     return useReadContract({
       address: CONTRACTS.CreditNFT.address,
       abi: CONTRACTS.CreditNFT.abi,
       functionName: 'ownerOf',
-      args: [tokenId],
+      args: tokenId ? [tokenId] : undefined,
+      query: { enabled: !!tokenId }
     })
   }
 
-  const tokenURI = (tokenId: bigint) => {
+  const useTokenURI = (tokenId?: bigint) => {
     return useReadContract({
       address: CONTRACTS.CreditNFT.address,
       abi: CONTRACTS.CreditNFT.abi,
       functionName: 'tokenURI',
-      args: [tokenId],
+      args: tokenId ? [tokenId] : undefined,
+      query: { enabled: !!tokenId }
     })
   }
 
@@ -327,19 +383,24 @@ export function useCreditNFT() {
     })
   }, [writeContractAsync])
 
-  const updateCreditScore = useCallback(async (tokenId: bigint, newScore: bigint) => {
+  const updateCreditScore = useCallback(async (
+    tokenId: bigint, 
+    newScore: bigint, 
+    totalRepayments: bigint = BigInt(0), 
+    repaymentStreak: bigint = BigInt(0)
+  ) => {
     return writeContractAsync({
       address: CONTRACTS.CreditNFT.address,
       abi: CONTRACTS.CreditNFT.abi,
       functionName: 'updateCreditScore',
-      args: [tokenId, newScore],
+      args: [tokenId, newScore, totalRepayments, repaymentStreak],
     })
   }, [writeContractAsync])
 
   return {
-    balanceOf,
-    ownerOf,
-    tokenURI,
+    useBalanceOf,
+    useOwnerOf,
+    useTokenURI,
     mintCreditNFT,
     updateCreditScore,
   }
@@ -382,4 +443,21 @@ export const calculateHealthFactor = (collateral: bigint, debt: bigint, liquidat
 
 export const isLoanHealthy = (healthFactor: number): boolean => {
   return healthFactor > 1.0
+}
+
+// Main useContracts hook that combines all contract hooks
+export function useContracts() {
+  const creditOracle = useCreditOracle()
+  const lendingPool = useLendingPool()
+  const savingsVault = useSavingsVault()
+  const creditNFT = useCreditNFT()
+
+  return {
+    creditOracle,
+    lendingPool,
+    savingsVault,
+    creditNFT,
+    // For backward compatibility, expose some commonly used functions directly
+    mintCreditNFT: creditNFT.mintCreditNFT,
+  }
 }

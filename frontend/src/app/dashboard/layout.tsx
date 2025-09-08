@@ -11,6 +11,7 @@ import {
   ShieldCheckIcon, 
   PhotoIcon,
   ChartBarIcon,
+  BoltIcon,
   Bars3Icon,
   XMarkIcon
 } from '@heroicons/react/24/outline'
@@ -23,6 +24,7 @@ const navigation = [
   { name: 'Overview', href: '/dashboard', icon: HomeIcon },
   { name: 'Loans', href: '/dashboard/loans', icon: CreditCardIcon },
   { name: 'Savings', href: '/dashboard/savings', icon: BanknotesIcon },
+  { name: 'Flash Loans', href: '/dashboard/flashloans', icon: BoltIcon },
   { name: 'Liquidations', href: '/dashboard/liquidations', icon: ShieldCheckIcon },
   { name: 'Credit NFT', href: '/dashboard/nft', icon: PhotoIcon },
   { name: 'Analytics', href: '/dashboard/analytics', icon: ChartBarIcon },

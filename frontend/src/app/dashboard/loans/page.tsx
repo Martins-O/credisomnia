@@ -1,6 +1,12 @@
-import LoanManagement from '@/components/loan/LoanManagement'
+'use client';
+
+import { useSearchParams } from 'next/navigation';
+import LoanManagement from '@/components/loan/LoanManagement';
 
 export default function LoansPage() {
+  const searchParams = useSearchParams();
+  const defaultTab = searchParams.get('tab') as 'borrow' | 'repay' | 'manage' || 'borrow';
+
   return (
     <div>
       <div className="mb-6">
@@ -10,7 +16,7 @@ export default function LoansPage() {
         </p>
       </div>
       
-      <LoanManagement />
+      <LoanManagement defaultTab={defaultTab} />
     </div>
   )
 }

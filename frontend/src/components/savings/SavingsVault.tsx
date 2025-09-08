@@ -29,9 +29,9 @@ export default function SavingsVault() {
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   // Fetch savings data
-  const { data: accountInfo, refetch: refetchAccount } = savingsVault.getAccountInfo(address!)
-  const { data: totalDeposits } = savingsVault.getTotalDeposits()
-  const { data: pendingRewards } = savingsVault.calculateRewards(address!)
+  const { data: accountInfo, refetch: refetchAccount } = savingsVault.useAccountInfo(address!)
+  const { data: totalDeposits } = savingsVault.useTotalDeposits()
+  const { data: pendingRewards } = savingsVault.useCalculateRewards(address!)
 
   // Update store when account info changes
   useEffect(() => {
@@ -157,34 +157,21 @@ export default function SavingsVault() {
     }
   }
 
-  // Handle claim rewards
+  // Handle claim rewards - Note: Rewards auto-compound in this vault design
   const handleClaimRewards = async () => {
-    if (!address || isSubmitting || !pendingRewards || pendingRewards === 0n) return
+    if (!address || isSubmitting) return
 
-    setIsSubmitting(true)
-    
-    try {
-      const hash = await savingsVault.claimRewards()
-      
-      addNotification({
-        type: 'success',
-        title: 'Rewards Claimed',
-        description: `Claiming ${formatTokenAmount(pendingRewards)} USDC in rewards`,
-      })
+    // Since rewards are auto-compounded, we inform the user and refresh their balance
+    addNotification({
+      type: 'info',
+      title: 'Auto-Compounded Rewards',
+      description: 'Your rewards are automatically compounded into your balance. No manual claim needed!',
+    })
 
-      setTimeout(() => {
-        refetchAccount()
-      }, 3000)
-
-    } catch (error: any) {
-      addNotification({
-        type: 'error',
-        title: 'Claim Failed',
-        description: error?.message || 'Transaction failed',
-      })
-    } finally {
-      setIsSubmitting(false)
-    }
+    // Refresh account data to show updated compounded balance
+    setTimeout(() => {
+      refetchAccount()
+    }, 1000)
   }
 
   // Calculate projected earnings
@@ -246,7 +233,7 @@ export default function SavingsVault() {
           <div className="bg-gradient-to-r from-purple-50 to-purple-100 p-4 rounded-lg">
             <div className="text-sm text-purple-600 font-medium">Pending Rewards</div>
             <div className="text-2xl font-bold text-purple-900">
-              {pendingRewards ? formatTokenAmount(pendingRewards) : '0'} USDC
+              {pendingRewards && typeof pendingRewards === 'bigint' ? formatTokenAmount(pendingRewards) : '0'} USDC
             </div>
           </div>
           
@@ -390,39 +377,37 @@ export default function SavingsVault() {
               </div>
             </div>
 
-            {/* Claim Rewards */}
-            {pendingRewards && pendingRewards > 0n && (
-              <div className="bg-green-50 border border-green-200 p-4 rounded-lg">
-                <div className="flex justify-between items-center">
-                  <div>
-                    <h4 className="font-medium text-green-800">Rewards Available</h4>
-                    <p className="text-green-600">
-                      {formatTokenAmount(pendingRewards)} USDC ready to claim
-                    </p>
-                  </div>
-                  <button
-                    onClick={handleClaimRewards}
-                    disabled={isSubmitting}
-                    className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 disabled:opacity-50 font-medium"
-                  >
-                    {isSubmitting ? 'Claiming...' : 'Claim Rewards'}
-                  </button>
+            {/* Auto-Compounding Info */}
+            <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg">
+              <div className="flex justify-between items-center">
+                <div>
+                  <h4 className="font-medium text-blue-800">Auto-Compounding Rewards</h4>
+                  <p className="text-blue-600">
+                    Your rewards are automatically compounded into your balance every block
+                  </p>
                 </div>
+                <button
+                  onClick={handleClaimRewards}
+                  disabled={isSubmitting}
+                  className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 disabled:opacity-50 font-medium"
+                >
+                  Refresh Balance
+                </button>
               </div>
-            )}
+            </div>
 
             {/* Protocol Stats */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="border border-gray-200 p-4 rounded-lg">
                 <h4 className="font-medium text-gray-900 mb-2">Total Protocol Deposits</h4>
                 <p className="text-xl font-bold text-blue-600">
-                  {totalDeposits ? formatTokenAmount(totalDeposits) : '0'} USDC
+                  {totalDeposits && typeof totalDeposits === 'bigint' ? formatTokenAmount(totalDeposits) : '0'} USDC
                 </p>
               </div>
               <div className="border border-gray-200 p-4 rounded-lg">
                 <h4 className="font-medium text-gray-900 mb-2">Your Share</h4>
                 <p className="text-xl font-bold text-purple-600">
-                  {savingsAccount && totalDeposits && totalDeposits > 0n
+                  {savingsAccount && totalDeposits && typeof totalDeposits === 'bigint' && totalDeposits > 0n
                     ? ((Number(savingsAccount.totalDeposited) / Number(totalDeposits)) * 100).toFixed(2)
                     : '0'
                   }%

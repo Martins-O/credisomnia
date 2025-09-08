@@ -1,5 +1,5 @@
 // Auto-generated ABI for CreditOracle
-// Generated on: 2025-09-05T17:17:34.176Z
+// Generated on: 2025-09-08T06:43:24.422Z
 
 export const CreditOracleABI = [
   {

@@ -1,11 +1,20 @@
 'use client'
 
-import { useEffect, useCallback, useRef } from 'react'
+import { useEffect, useCallback, useRef, useState } from 'react'
 import { useAccount, useWatchContractEvent, useBlockNumber } from 'wagmi'
 import { Address } from 'viem'
 import { CONTRACTS } from '../contracts'
 import { useDefiStore, useNotificationStore, useTransactionStore } from '../store/defi-store'
 import { useCreditOracle, useLendingPool, useSavingsVault, useCreditNFT } from './useContracts'
+
+interface FlashLoanEvent {
+  target: string
+  initiator: string
+  asset: string
+  amount: bigint
+  premium: bigint
+  timestamp: number
+}
 
 export function useRealTimeUpdates() {
   const { address } = useAccount()
@@ -21,11 +30,17 @@ export function useRealTimeUpdates() {
     refreshAllData 
   } = useDefiStore()
 
+  // State for tracking flash loan events
+  const [flashLoanEvents, setFlashLoanEvents] = useState<FlashLoanEvent[]>([])
+
   // Contract hooks for data fetching
   const creditOracle = useCreditOracle()
   const lendingPool = useLendingPool()
   const savingsVault = useSavingsVault()
   const creditNFT = useCreditNFT()
+
+  // Get user loans data for health monitoring
+  const { data: userLoansData } = lendingPool.useUserLoans(address)
 
   // Track last update times to prevent excessive refreshes
   const lastUpdateRef = useRef({
@@ -54,7 +69,7 @@ export function useRealTimeUpdates() {
   useWatchContractEvent({
     address: CONTRACTS.LendingPool.address,
     abi: CONTRACTS.LendingPool.abi,
-    eventName: 'LoanCreated',
+    eventName: 'LoanIssued',
     onLogs(logs) {
       logs.forEach((log) => {
         if (log.args.borrower === address) {
@@ -93,11 +108,12 @@ export function useRealTimeUpdates() {
     eventName: 'LoanLiquidated',
     onLogs(logs) {
       logs.forEach((log) => {
-        if (log.args.borrower === address) {
+        // Note: LoanLiquidated event doesn't include borrower, this would need loan lookup
+        if (log.args.loanId) {
           addNotification({
-            type: 'error',
+            type: 'info',
             title: 'Loan Liquidated',
-            description: `Your loan #${log.args.loanId?.toString()} has been liquidated`,
+            description: `Loan #${log.args.loanId?.toString()} has been liquidated`,
           })
           debouncedRefresh('loans')
         } else if (log.args.liquidator === address) {
@@ -134,7 +150,7 @@ export function useRealTimeUpdates() {
   useWatchContractEvent({
     address: CONTRACTS.SavingsVault.address,
     abi: CONTRACTS.SavingsVault.abi,
-    eventName: 'Withdrawal',
+    eventName: 'Withdraw',
     onLogs(logs) {
       logs.forEach((log) => {
         if (log.args.user === address) {
@@ -152,7 +168,7 @@ export function useRealTimeUpdates() {
   useWatchContractEvent({
     address: CONTRACTS.SavingsVault.address,
     abi: CONTRACTS.SavingsVault.abi,
-    eventName: 'RewardsClaimed',
+    eventName: 'InterestAccrued',
     onLogs(logs) {
       logs.forEach((log) => {
         if (log.args.user === address) {
@@ -209,6 +225,39 @@ export function useRealTimeUpdates() {
     },
   })
 
+  // Watch for Flash Loan events
+  useWatchContractEvent({
+    address: CONTRACTS.LendingPool.address,
+    abi: CONTRACTS.LendingPool.abi,
+    eventName: 'FlashLoan',
+    onLogs(logs) {
+      logs.forEach((log) => {
+        // Add to flash loan events history
+        if (log.args.target && log.args.initiator && log.args.asset && log.args.amount && log.args.premium) {
+          const newEvent: FlashLoanEvent = {
+            target: log.args.target,
+            initiator: log.args.initiator,
+            asset: log.args.asset,
+            amount: log.args.amount,
+            premium: log.args.premium,
+            timestamp: Date.now()
+          }
+          setFlashLoanEvents(prev => [...prev.slice(-49), newEvent]) // Keep last 50 events
+        }
+
+        // Show notification if user initiated
+        if (log.args.initiator === address) {
+          addNotification({
+            type: 'success',
+            title: 'Flash Loan Executed',
+            description: `Flash loan of ${log.args.amount?.toString()} tokens completed successfully`,
+          })
+          debouncedRefresh('loans')
+        }
+      })
+    },
+  })
+
   // Periodic data refresh based on block number
   useEffect(() => {
     if (!blockNumber || !address) return
@@ -226,7 +275,7 @@ export function useRealTimeUpdates() {
     try {
       // This would typically be done by fetching all user loans and checking health factors
       // For now, we'll simulate health monitoring
-      const loans = await lendingPool.getUserLoans(address)
+      const loans = await lendingPool.useUserLoans(address)
       
       if (loans.data && Array.isArray(loans.data)) {
         loans.data.forEach((loan: any) => {
@@ -268,6 +317,8 @@ export function useRealTimeUpdates() {
     refreshCredit: () => debouncedRefresh('credit', 0),
     refreshNFT: () => debouncedRefresh('nft', 0),
     refreshAll: () => refreshAllData(),
+    // Flash loan event data
+    flashLoanEvents,
   }
 }
 

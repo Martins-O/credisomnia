@@ -403,7 +403,7 @@ export function validateTransactionParams(params: {
   }
   
   if (params.gasLimit) {
-    if (params.gasLimit <= 0n) {
+    if (params.gasLimit <= BigInt(0)) {
       errors.push('Gas limit must be positive')
     }
   }

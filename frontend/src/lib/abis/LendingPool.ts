@@ -1,5 +1,5 @@
 // Auto-generated ABI for LendingPool
-// Generated on: 2025-09-05T17:17:34.191Z
+// Generated on: 2025-09-08T13:54:15.793Z
 
 export const LendingPoolABI = [
   {
@@ -159,6 +159,43 @@ export const LendingPoolABI = [
       }
     ],
     "name": "DailyVolumeLimitExceeded",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "target",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "initiator",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "asset",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "amount",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "premium",
+        "type": "uint256"
+      }
+    ],
+    "name": "FlashLoan",
     "type": "event"
   },
   {
@@ -631,6 +668,47 @@ export const LendingPoolABI = [
     "type": "function"
   },
   {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "receiverAddress",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "asset",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "amount",
+        "type": "uint256"
+      },
+      {
+        "internalType": "bytes",
+        "name": "params",
+        "type": "bytes"
+      }
+    ],
+    "name": "flashLoan",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "flashLoanPremiumRate",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
     "inputs": [],
     "name": "getAvailableLiquidity",
     "outputs": [
@@ -646,6 +724,38 @@ export const LendingPoolABI = [
   {
     "inputs": [],
     "name": "getDailyVolumeUsed",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "amount",
+        "type": "uint256"
+      }
+    ],
+    "name": "getFlashLoanFee",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "getFlashLoanPremiumRate",
     "outputs": [
       {
         "internalType": "uint256",
@@ -789,6 +899,19 @@ export const LendingPoolABI = [
   },
   {
     "inputs": [],
+    "name": "getTotalFlashLoanFees",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
     "name": "getTotalValueLocked",
     "outputs": [
       {
@@ -877,6 +1000,25 @@ export const LendingPoolABI = [
   {
     "inputs": [],
     "name": "isCircuitBreakerActive",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "account",
+        "type": "address"
+      }
+    ],
+    "name": "isFlashLoanExecuting",
     "outputs": [
       {
         "internalType": "bool",
@@ -1220,6 +1362,19 @@ export const LendingPoolABI = [
     "inputs": [
       {
         "internalType": "uint256",
+        "name": "newRate",
+        "type": "uint256"
+      }
+    ],
+    "name": "setFlashLoanPremiumRate",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
         "name": "newLimit",
         "type": "uint256"
       }
@@ -1298,6 +1453,19 @@ export const LendingPoolABI = [
   {
     "inputs": [],
     "name": "totalBorrowed",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "totalFlashLoanFees",
     "outputs": [
       {
         "internalType": "uint256",
@@ -1420,5 +1588,3 @@ export const LendingPoolABI = [
     "type": "function"
   }
 ] as const;
-
-export type LendingPoolABI = typeof LendingPoolABI;

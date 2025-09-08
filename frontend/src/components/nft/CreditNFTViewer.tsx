@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
+import Image from 'next/image'
 import { useAccount } from 'wagmi'
 import { Address } from 'viem'
 import { useCreditNFT, useCreditOracle, formatCreditScore } from '@/lib/hooks/useContracts'
@@ -41,8 +42,8 @@ export default function CreditNFTViewer() {
   const [isUpdating, setIsUpdating] = useState(false)
 
   // Fetch NFT data
-  const { data: nftBalanceData } = creditNFT.balanceOf(address!)
-  const { data: creditProfileData } = creditOracle.getCreditProfile(address!)
+  const { data: nftBalanceData } = creditNFT.useBalanceOf(address!)
+  const { data: creditProfileData } = creditOracle.useCreditProfile(address!)
 
   // Update NFT balance in store
   useEffect(() => {
@@ -50,6 +51,33 @@ export default function CreditNFTViewer() {
       setNftBalance(Number(nftBalanceData))
     }
   }, [nftBalanceData, setNftBalance])
+
+  // Generate NFT metadata based on credit score
+  const generateNFTMetadata = useCallback((score: number): NFTMetadata => {
+    const getScoreTier = (score: number) => {
+      if (score >= 800) return { tier: 'Excellent', color: '#10B981', rarity: 'Legendary' }
+      if (score >= 740) return { tier: 'Very Good', color: '#3B82F6', rarity: 'Epic' }
+      if (score >= 670) return { tier: 'Good', color: '#8B5CF6', rarity: 'Rare' }
+      if (score >= 580) return { tier: 'Fair', color: '#F59E0B', rarity: 'Uncommon' }
+      return { tier: 'Poor', color: '#EF4444', rarity: 'Common' }
+    }
+
+    const { tier, color, rarity } = getScoreTier(score)
+
+    return {
+      name: `Credit Score NFT - ${tier}`,
+      description: `A dynamic NFT representing your DeFi credit score of ${score}. This NFT evolves as your credit score changes through responsible borrowing and saving behavior.`,
+      image: generateNFTImage(score, color),
+      attributes: [
+        { trait_type: 'Credit Score', value: score },
+        { trait_type: 'Score Tier', value: tier },
+        { trait_type: 'Rarity', value: rarity },
+        { trait_type: 'Network', value: 'Somnia Testnet' },
+        { trait_type: 'Protocol', value: 'Credisomnia' },
+        { trait_type: 'Last Updated', value: new Date().toISOString().split('T')[0] }
+      ]
+    }
+  }, [])
 
   // Fetch user's NFTs
   useEffect(() => {
@@ -91,34 +119,7 @@ export default function CreditNFTViewer() {
     }
 
     fetchUserNFTs()
-  }, [address, nftBalanceData, creditScore, addNotification])
-
-  // Generate NFT metadata based on credit score
-  const generateNFTMetadata = (score: number): NFTMetadata => {
-    const getScoreTier = (score: number) => {
-      if (score >= 800) return { tier: 'Excellent', color: '#10B981', rarity: 'Legendary' }
-      if (score >= 740) return { tier: 'Very Good', color: '#3B82F6', rarity: 'Epic' }
-      if (score >= 670) return { tier: 'Good', color: '#8B5CF6', rarity: 'Rare' }
-      if (score >= 580) return { tier: 'Fair', color: '#F59E0B', rarity: 'Uncommon' }
-      return { tier: 'Poor', color: '#EF4444', rarity: 'Common' }
-    }
-
-    const { tier, color, rarity } = getScoreTier(score)
-
-    return {
-      name: `Credit Score NFT - ${tier}`,
-      description: `A dynamic NFT representing your DeFi credit score of ${score}. This NFT evolves as your credit score changes through responsible borrowing and saving behavior.`,
-      image: generateNFTImage(score, color),
-      attributes: [
-        { trait_type: 'Credit Score', value: score },
-        { trait_type: 'Score Tier', value: tier },
-        { trait_type: 'Rarity', value: rarity },
-        { trait_type: 'Network', value: 'Somnia Testnet' },
-        { trait_type: 'Protocol', value: 'Credisomnia' },
-        { trait_type: 'Last Updated', value: new Date().toISOString().split('T')[0] }
-      ]
-    }
-  }
+  }, [address, nftBalanceData, creditScore, addNotification, generateNFTMetadata])
 
   // Generate NFT image URL based on credit score
   const generateNFTImage = (score: number, color: string): string => {
@@ -316,11 +317,12 @@ export default function CreditNFTViewer() {
                     className="border border-gray-200 rounded-lg overflow-hidden hover:shadow-md transition-shadow cursor-pointer"
                     onClick={() => setSelectedNFT(nft)}
                   >
-                    <div className="aspect-square">
-                      <img
+                    <div className="aspect-square relative">
+                      <Image
                         src={nft.metadata.image}
                         alt={nft.metadata.name}
-                        className="w-full h-full object-cover"
+                        fill
+                        className="object-cover"
                       />
                     </div>
                     <div className="p-4">
@@ -365,10 +367,12 @@ export default function CreditNFTViewer() {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <img
+                <div className="relative">
+                  <Image
                     src={selectedNFT.metadata.image}
                     alt={selectedNFT.metadata.name}
+                    width={400}
+                    height={400}
                     className="w-full rounded-lg"
                   />
                 </div>

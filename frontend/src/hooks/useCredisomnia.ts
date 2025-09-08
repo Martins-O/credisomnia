@@ -51,7 +51,7 @@ export function useCredisomnia() {
   const { data: savingsBalance } = useReadContract({
     address: CONTRACTS.SavingsVault.address,
     abi: CONTRACTS.SavingsVault.abi,
-    functionName: 'getUserBalance',
+    functionName: 'getBalance',
     args: address ? [address] : undefined,
     query: { enabled: !!address }
   });
@@ -73,12 +73,13 @@ export function useCredisomnia() {
   }, []);
 
   // Mint credit NFT wrapper
-  const mintCreditNFT = useCallback(async (initialScore?: number) => {
+  const mintCreditNFT = useCallback(async (initialScore?: bigint | number) => {
     if (!address) return;
     
     setIsLoading(true);
     try {
-      await mintNFT(initialScore || 600);
+      const scoreAsBigInt = typeof initialScore === 'bigint' ? initialScore : BigInt(initialScore || 600);
+      await mintNFT(address, scoreAsBigInt);
     } catch (error) {
       console.error('Error minting Credit NFT:', error);
       throw error;
@@ -87,15 +88,60 @@ export function useCredisomnia() {
     }
   }, [address, mintNFT]);
 
-  // Mock data for development (will be replaced by real contract data)
-  const mockData = useMemo(() => ({
-    totalLoans: 3,
-    activeLiquidations: 0,
-    totalSaved: savingsBalance ? formatBalance(savingsBalance) : '1,250.00',
-    apy: '5.2%',
-    healthFactor: '2.4',
-    nextPaymentDue: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString()
-  }), [savingsBalance, formatBalance]);
+  // Get real contract data from lending pool
+  const { data: userLoans } = useReadContract({
+    address: CONTRACTS.LendingPool.address,
+    abi: CONTRACTS.LendingPool.abi,
+    functionName: 'getUserLoans',
+    args: address ? [address] : undefined,
+    query: { enabled: !!address }
+  });
+
+  const { data: totalSupplied } = useReadContract({
+    address: CONTRACTS.LendingPool.address,
+    abi: CONTRACTS.LendingPool.abi,
+    functionName: 'getTotalValueLocked',
+  });
+
+  const { data: totalBorrowed } = useReadContract({
+    address: CONTRACTS.LendingPool.address,
+    abi: CONTRACTS.LendingPool.abi,
+    functionName: 'totalBorrowed',
+  });
+
+  // Calculate real metrics from contract data
+  const realData = useMemo(() => {
+    const loans = userLoans as Array<any> || [];
+    const activeLoans = loans.filter((loan: any) => loan?.status === 0);
+    const totalOutstanding = activeLoans.reduce((sum: bigint, loan: any) => sum + (loan?.outstandingAmount || 0n), 0n);
+    
+    // Calculate health factor
+    const totalCollateral = activeLoans.reduce((sum: bigint, loan: any) => sum + (loan?.collateralAmount || 0n), 0n);
+    const healthFactor = totalOutstanding > 0n ? 
+      (Number(totalCollateral) * 0.8 / Number(totalOutstanding)) : Infinity;
+    
+    // Find next payment due
+    const nextPayment = activeLoans.reduce((earliest: bigint, loan: any) => {
+      if (!loan?.dueTimestamp) return earliest;
+      return earliest === 0n || loan.dueTimestamp < earliest ? loan.dueTimestamp : earliest;
+    }, 0n);
+
+    // Calculate APY (5% base rate)
+    const baseAPY = 5.0;
+    const utilizationRate = totalSupplied && totalSupplied > 0n ? Number(totalBorrowed || 0n) / Number(totalSupplied) : 0;
+    const dynamicAPY = baseAPY + (utilizationRate * 2); // Add utilization bonus
+
+    return {
+      totalLoans: activeLoans.length,
+      activeLiquidations: activeLoans.filter((loan: any) => healthFactor < 1.1).length,
+      totalSaved: savingsBalance && typeof savingsBalance === 'bigint' ? formatBalance(savingsBalance) : '0.00',
+      apy: `${dynamicAPY.toFixed(1)}%`,
+      healthFactor: healthFactor === Infinity ? '∞' : healthFactor.toFixed(2),
+      nextPaymentDue: nextPayment > 0n ? 
+        new Date(Number(nextPayment) * 1000).toLocaleDateString() : 
+        'No active loans'
+    };
+  }, [userLoans, savingsBalance, formatBalance, totalSupplied, totalBorrowed]);
 
   return {
     // Contract data
@@ -116,7 +162,7 @@ export function useCredisomnia() {
     isConnected,
     address,
     
-    // Mock data for UI
-    ...mockData
+    // Real contract data
+    ...realData
   };
 }

@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { useAccount } from 'wagmi';
+import { useRouter } from 'next/navigation';
 import { useCredisomnia } from '@/hooks/useCredisomnia';
 
 const containerVariants = {
@@ -42,6 +43,7 @@ const itemVariants = {
 
 export default function DashboardPage() {
   const { isConnected } = useAccount();
+  const router = useRouter();
   const { 
     creditScore, 
     creditProfile, 
@@ -50,7 +52,13 @@ export default function DashboardPage() {
     getCreditTier, 
     formatBalance,
     mintCreditNFT,
-    isLoading 
+    isLoading,
+    totalLoans,
+    activeLiquidations,
+    totalSaved,
+    apy,
+    healthFactor,
+    nextPaymentDue
   } = useCredisomnia();
 
   if (!isConnected) {
@@ -76,7 +84,7 @@ export default function DashboardPage() {
 
   const creditScoreNum = creditScore ? Number(creditScore) : 0;
   const tier = getCreditTier(creditScore || BigInt(0));
-  const savingsBalanceFormatted = formatBalance(savingsBalance);
+  const savingsBalanceFormatted = formatBalance(savingsBalance as bigint | undefined);
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -115,7 +123,7 @@ export default function DashboardPage() {
                   <motion.button
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
-                    onClick={() => mintCreditNFT(600)}
+                    onClick={() => mintCreditNFT(creditScore || 600n)}
                     disabled={isLoading}
                     className="px-6 py-3 bg-white text-primary-600 font-semibold rounded-xl hover:bg-gray-100 transition-colors disabled:opacity-50"
                   >
@@ -232,6 +240,7 @@ export default function DashboardPage() {
             </h2>
             <div className="grid md:grid-cols-3 gap-4">
               <motion.button
+                onClick={() => router.push('/dashboard/savings')}
                 whileHover={{ scale: 1.02, y: -2 }}
                 whileTap={{ scale: 0.98 }}
                 className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg border border-gray-100 dark:border-gray-700 text-left hover:shadow-xl transition-all duration-300"
@@ -243,11 +252,12 @@ export default function DashboardPage() {
                   Start Saving
                 </h3>
                 <p className="text-sm text-gray-600 dark:text-gray-300">
-                  Deposit funds and earn 5.2% APY while building credit
+                  Deposit funds and earn {apy} APY while building credit
                 </p>
               </motion.button>
 
               <motion.button
+                onClick={() => router.push('/dashboard/loans')}
                 whileHover={{ scale: 1.02, y: -2 }}
                 whileTap={{ scale: 0.98 }}
                 className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg border border-gray-100 dark:border-gray-700 text-left hover:shadow-xl transition-all duration-300"
@@ -264,6 +274,7 @@ export default function DashboardPage() {
               </motion.button>
 
               <motion.button
+                onClick={() => router.push('/dashboard/nft')}
                 whileHover={{ scale: 1.02, y: -2 }}
                 whileTap={{ scale: 0.98 }}
                 className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg border border-gray-100 dark:border-gray-700 text-left hover:shadow-xl transition-all duration-300"
@@ -425,6 +436,7 @@ export default function DashboardPage() {
                     Payment due in 7 days
                   </div>
                   <motion.button
+                    onClick={() => router.push('/dashboard/loans?tab=repay')}
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     className="mt-4 w-full bg-white text-orange-600 font-semibold py-2 px-4 rounded-lg hover:bg-orange-50 transition-colors"

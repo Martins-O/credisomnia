@@ -17,7 +17,11 @@ interface RepayFormData {
   amount: string
 }
 
-export default function LoanManagement() {
+interface LoanManagementProps {
+  defaultTab?: 'borrow' | 'repay' | 'manage';
+}
+
+export default function LoanManagement({ defaultTab = 'borrow' }: LoanManagementProps) {
   const { address } = useAccount()
   const { addNotification } = useNotificationStore()
   const { userLoans, creditScore, setUserLoans, setLoading } = useDefiStore()
@@ -27,7 +31,7 @@ export default function LoanManagement() {
   const creditOracle = useCreditOracle()
 
   // Local state
-  const [activeTab, setActiveTab] = useState<'borrow' | 'repay' | 'manage'>('borrow')
+  const [activeTab, setActiveTab] = useState<'borrow' | 'repay' | 'manage'>(defaultTab)
   const [borrowForm, setBorrowForm] = useState<BorrowFormData>({
     amount: '',
     duration: '30',
@@ -40,13 +44,13 @@ export default function LoanManagement() {
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   // Fetch user loans
-  const { data: loansData, refetch: refetchLoans } = lendingPool.getUserLoans(address!)
-  const { data: activeLoanIds } = lendingPool.getActiveLoanIds(address!)
-  const { data: eligibilityCheck } = creditOracle.checkLoanEligibility(
+  const { data: loansData, refetch: refetchLoans } = lendingPool.useUserLoans(address!)
+  const { data: activeLoanIds } = lendingPool.useActiveLoanIds(address!)
+  const { data: eligibilityCheck } = creditOracle.useLoanEligibility(
     address!,
     borrowForm.amount ? parseTokenAmount(borrowForm.amount) : 0n
   )
-  const { data: collateralRequired } = creditOracle.calculateCollateralRequirement(
+  const { data: collateralRequired } = creditOracle.useCollateralRequirement(
     address!,
     borrowForm.amount ? parseTokenAmount(borrowForm.amount) : 0n
   )
@@ -81,7 +85,7 @@ export default function LoanManagement() {
       const collateralWei = parseTokenAmount(collateralAmount)
       const durationSeconds = BigInt(parseInt(duration) * 24 * 60 * 60) // days to seconds
 
-      const hash = await lendingPool.borrow(amountWei, collateralWei, durationSeconds)
+      const hash = await lendingPool.requestLoan(amountWei, collateralWei, durationSeconds)
       
       addNotification({
         type: 'success',

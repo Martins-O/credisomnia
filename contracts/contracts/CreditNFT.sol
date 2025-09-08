@@ -338,13 +338,58 @@ contract CreditNFT is ERC721, ICreditNFT, CredisomniaSecurity {
      */
     function _replace(
         string memory source,
-        string memory, // search - unused in simple implementation
-        string memory  // replacement - unused in simple implementation
+        string memory search,
+        string memory replacement
     ) internal pure returns (string memory) {
-        // Simple implementation - in production, use a more robust string library
-        // For simplicity, just return source with basic replacement logic
-        // In a production environment, use a proper string manipulation library
-        return source; // Placeholder - implement proper string replacement
+        bytes memory sourceBytes = bytes(source);
+        bytes memory searchBytes = bytes(search);
+        bytes memory replacementBytes = bytes(replacement);
+        
+        if (searchBytes.length == 0 || sourceBytes.length < searchBytes.length) {
+            return source;
+        }
+        
+        // Find the first occurrence of search string
+        uint256 matchIndex = type(uint256).max;
+        for (uint256 i = 0; i <= sourceBytes.length - searchBytes.length; i++) {
+            bool matches = true;
+            for (uint256 j = 0; j < searchBytes.length; j++) {
+                if (sourceBytes[i + j] != searchBytes[j]) {
+                    matches = false;
+                    break;
+                }
+            }
+            if (matches) {
+                matchIndex = i;
+                break;
+            }
+        }
+        
+        if (matchIndex == type(uint256).max) {
+            return source; // No match found
+        }
+        
+        // Build result with replacement
+        bytes memory result = new bytes(
+            sourceBytes.length - searchBytes.length + replacementBytes.length
+        );
+        
+        // Copy before match
+        for (uint256 i = 0; i < matchIndex; i++) {
+            result[i] = sourceBytes[i];
+        }
+        
+        // Copy replacement
+        for (uint256 i = 0; i < replacementBytes.length; i++) {
+            result[matchIndex + i] = replacementBytes[i];
+        }
+        
+        // Copy after match
+        for (uint256 i = matchIndex + searchBytes.length; i < sourceBytes.length; i++) {
+            result[matchIndex + replacementBytes.length + i - matchIndex - searchBytes.length] = sourceBytes[i];
+        }
+        
+        return string(result);
     }
 
     /**

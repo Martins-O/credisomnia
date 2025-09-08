@@ -190,4 +190,40 @@ interface ILendingPool {
      * @dev Resume lending operations (admin only)
      */
     function resumeLending() external;
+
+    /// @dev Flash loan events
+    event FlashLoan(
+        address indexed target,
+        address indexed initiator,
+        address indexed asset,
+        uint256 amount,
+        uint256 premium
+    );
+
+    /**
+     * @dev Executes a flash loan
+     * @param receiverAddress Address of the contract receiving the flash loan
+     * @param asset Address of the asset to flash loan
+     * @param amount Amount to flash loan
+     * @param params Additional parameters to pass to the receiver
+     */
+    function flashLoan(
+        address receiverAddress,
+        address asset,
+        uint256 amount,
+        bytes calldata params
+    ) external;
+
+    /**
+     * @dev Gets the flash loan fee for a given amount
+     * @param amount Amount to calculate fee for
+     * @return The flash loan fee amount
+     */
+    function getFlashLoanFee(uint256 amount) external view returns (uint256);
+
+    /**
+     * @dev Gets the flash loan premium rate in basis points
+     * @return Flash loan premium rate (e.g., 9 = 0.09%)
+     */
+    function getFlashLoanPremiumRate() external view returns (uint256);
 }
