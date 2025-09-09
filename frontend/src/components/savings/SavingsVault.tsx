@@ -5,6 +5,8 @@ import { useAccount } from 'wagmi'
 import { formatUnits } from 'viem'
 import { useSavingsVault, formatTokenAmount, parseTokenAmount } from '@/lib/hooks/useContracts'
 import { useDefiStore, useNotificationStore } from '@/lib/store/defi-store'
+import TokenConverter from '@/components/conversion/TokenConverter'
+import ConversionAnalytics from '@/components/conversion/ConversionAnalytics'
 
 interface DepositFormData {
   amount: string
@@ -14,7 +16,11 @@ interface WithdrawFormData {
   amount: string
 }
 
-export default function SavingsVault() {
+interface SavingsVaultProps {
+  defaultTab?: 'deposit' | 'withdraw' | 'convert' | 'overview';
+}
+
+export default function SavingsVault({ defaultTab = 'deposit' }: SavingsVaultProps) {
   const { address } = useAccount()
   const { addNotification } = useNotificationStore()
   const { savingsAccount, setSavingsAccount, setLoading } = useDefiStore()
@@ -23,7 +29,7 @@ export default function SavingsVault() {
   const savingsVault = useSavingsVault()
 
   // Local state
-  const [activeTab, setActiveTab] = useState<'deposit' | 'withdraw' | 'overview'>('deposit')
+  const [activeTab, setActiveTab] = useState<'deposit' | 'withdraw' | 'convert' | 'overview'>(defaultTab)
   const [depositForm, setDepositForm] = useState<DepositFormData>({ amount: '' })
   const [withdrawForm, setWithdrawForm] = useState<WithdrawFormData>({ amount: '' })
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -197,7 +203,7 @@ export default function SavingsVault() {
       {/* Tab Navigation */}
       <div className="border-b border-gray-200">
         <nav className="flex space-x-8 px-6">
-          {(['deposit', 'withdraw', 'overview'] as const).map((tab) => (
+          {(['deposit', 'withdraw', 'convert', 'overview'] as const).map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -207,7 +213,7 @@ export default function SavingsVault() {
                   : 'border-transparent text-gray-500 hover:text-gray-700'
               }`}
             >
-              {tab}
+              {tab === 'convert' ? 'Convert' : tab}
             </button>
           ))}
         </nav>
@@ -215,7 +221,7 @@ export default function SavingsVault() {
 
       <div className="p-6">
         {/* Stats Overview */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-8">
           <div className="bg-gradient-to-r from-blue-50 to-blue-100 p-4 rounded-lg">
             <div className="text-sm text-blue-600 font-medium">Your Balance</div>
             <div className="text-2xl font-bold text-blue-900">
@@ -242,6 +248,14 @@ export default function SavingsVault() {
             <div className="text-2xl font-bold text-yellow-900">
               {calculateAPY()}%
             </div>
+          </div>
+
+          <div className="bg-gradient-to-r from-indigo-50 to-indigo-100 p-4 rounded-lg">
+            <div className="text-sm text-indigo-600 font-medium">STT Rate</div>
+            <div className="text-2xl font-bold text-indigo-900">
+              $0.85
+            </div>
+            <div className="text-xs text-indigo-600 mt-1">vs USD</div>
           </div>
         </div>
 
@@ -303,6 +317,31 @@ export default function SavingsVault() {
                 {isSubmitting ? 'Processing...' : 'Deposit'}
               </button>
             </form>
+          </div>
+        )}
+
+        {/* Convert Tab */}
+        {activeTab === 'convert' && (
+          <div className="space-y-6">
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+              <h4 className="font-medium text-blue-800 mb-2">Token Conversion</h4>
+              <p className="text-blue-600 text-sm">
+                Convert your STT to preferred stablecoins before depositing to maximize your savings strategy. 
+                All converted tokens can be deposited into the savings vault to earn yield.
+              </p>
+            </div>
+            
+            <TokenConverter />
+            
+            <div className="bg-gray-50 rounded-lg p-4">
+              <h5 className="font-medium text-gray-800 mb-2">Why Convert?</h5>
+              <ul className="text-sm text-gray-600 space-y-1">
+                <li>• <strong>Stability:</strong> Reduce price volatility with stablecoins</li>
+                <li>• <strong>Yield:</strong> Earn consistent returns on stable assets</li>
+                <li>• <strong>Diversification:</strong> Spread risk across different stable assets</li>
+                <li>• <strong>Flexibility:</strong> Choose your preferred stablecoin (USDC, USDT, DAI, FRAX)</li>
+              </ul>
+            </div>
           </div>
         )}
 
@@ -396,23 +435,27 @@ export default function SavingsVault() {
               </div>
             </div>
 
-            {/* Protocol Stats */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="border border-gray-200 p-4 rounded-lg">
-                <h4 className="font-medium text-gray-900 mb-2">Total Protocol Deposits</h4>
-                <p className="text-xl font-bold text-blue-600">
-                  {totalDeposits && typeof totalDeposits === 'bigint' ? formatTokenAmount(totalDeposits) : '0'} USDC
-                </p>
+            {/* Protocol Stats and Conversion Analytics */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="space-y-4">
+                <div className="border border-gray-200 p-4 rounded-lg">
+                  <h4 className="font-medium text-gray-900 mb-2">Total Protocol Deposits</h4>
+                  <p className="text-xl font-bold text-blue-600">
+                    {totalDeposits && typeof totalDeposits === 'bigint' ? formatTokenAmount(totalDeposits) : '0'} USDC
+                  </p>
+                </div>
+                <div className="border border-gray-200 p-4 rounded-lg">
+                  <h4 className="font-medium text-gray-900 mb-2">Your Share</h4>
+                  <p className="text-xl font-bold text-purple-600">
+                    {savingsAccount && totalDeposits && typeof totalDeposits === 'bigint' && totalDeposits > 0n
+                      ? ((Number(savingsAccount.totalDeposited) / Number(totalDeposits)) * 100).toFixed(2)
+                      : '0'
+                    }%
+                  </p>
+                </div>
               </div>
-              <div className="border border-gray-200 p-4 rounded-lg">
-                <h4 className="font-medium text-gray-900 mb-2">Your Share</h4>
-                <p className="text-xl font-bold text-purple-600">
-                  {savingsAccount && totalDeposits && typeof totalDeposits === 'bigint' && totalDeposits > 0n
-                    ? ((Number(savingsAccount.totalDeposited) / Number(totalDeposits)) * 100).toFixed(2)
-                    : '0'
-                  }%
-                </p>
-              </div>
+              
+              <ConversionAnalytics />
             </div>
 
             {/* Account Status */}

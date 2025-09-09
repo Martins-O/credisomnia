@@ -44,6 +44,8 @@ const itemVariants = {
 export default function DashboardPage() {
   const { isConnected } = useAccount();
   const router = useRouter();
+  const [error, setError] = React.useState<string | null>(null);
+  
   const { 
     creditScore, 
     creditProfile, 
@@ -60,6 +62,25 @@ export default function DashboardPage() {
     healthFactor,
     nextPaymentDue
   } = useCredisomnia();
+
+  const handleMintNFT = async () => {
+    try {
+      setError(null);
+      await mintCreditNFT(creditScore || 600n);
+    } catch (err) {
+      setError('Failed to mint Credit NFT. Please try again.');
+      console.error('Mint NFT error:', err);
+    }
+  };
+
+  const handleNavigation = (path: string) => {
+    try {
+      router.push(path);
+    } catch (err) {
+      setError('Navigation failed. Please refresh the page.');
+      console.error('Navigation error:', err);
+    }
+  };
 
   if (!isConnected) {
     return (
@@ -107,6 +128,17 @@ export default function DashboardPage() {
               </div>
               <ConnectButton />
             </div>
+            {error && (
+              <div className="mt-4 p-3 bg-red-100 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+                <p className="text-red-800 dark:text-red-200 text-sm">{error}</p>
+                <button 
+                  onClick={() => setError(null)}
+                  className="text-red-600 hover:text-red-800 text-xs mt-1 underline"
+                >
+                  Dismiss
+                </button>
+              </div>
+            )}
           </motion.div>
 
           {/* Credit NFT Status */}
@@ -123,7 +155,7 @@ export default function DashboardPage() {
                   <motion.button
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
-                    onClick={() => mintCreditNFT(creditScore || 600n)}
+                    onClick={handleMintNFT}
                     disabled={isLoading}
                     className="px-6 py-3 bg-white text-primary-600 font-semibold rounded-xl hover:bg-gray-100 transition-colors disabled:opacity-50"
                   >
@@ -238,9 +270,9 @@ export default function DashboardPage() {
             <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
               Quick Actions
             </h2>
-            <div className="grid md:grid-cols-3 gap-4">
+            <div className="grid md:grid-cols-2 lg:grid-cols-5 gap-4">
               <motion.button
-                onClick={() => router.push('/dashboard/savings')}
+                onClick={() => handleNavigation('/dashboard/savings')}
                 whileHover={{ scale: 1.02, y: -2 }}
                 whileTap={{ scale: 0.98 }}
                 className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg border border-gray-100 dark:border-gray-700 text-left hover:shadow-xl transition-all duration-300"
@@ -257,7 +289,24 @@ export default function DashboardPage() {
               </motion.button>
 
               <motion.button
-                onClick={() => router.push('/dashboard/loans')}
+                onClick={() => handleNavigation('/dashboard/savings?tab=convert')}
+                whileHover={{ scale: 1.02, y: -2 }}
+                whileTap={{ scale: 0.98 }}
+                className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg border border-gray-100 dark:border-gray-700 text-left hover:shadow-xl transition-all duration-300"
+              >
+                <div className="w-12 h-12 bg-orange-100 dark:bg-orange-900 rounded-xl flex items-center justify-center mb-4">
+                  <ArrowUpRight className="w-6 h-6 text-orange-600 dark:text-orange-400" />
+                </div>
+                <h3 className="font-semibold text-gray-900 dark:text-white mb-2">
+                  Convert STT
+                </h3>
+                <p className="text-sm text-gray-600 dark:text-gray-300">
+                  Convert STT to stablecoins for stable savings yield
+                </p>
+              </motion.button>
+
+              <motion.button
+                onClick={() => handleNavigation('/dashboard/loans')}
                 whileHover={{ scale: 1.02, y: -2 }}
                 whileTap={{ scale: 0.98 }}
                 className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg border border-gray-100 dark:border-gray-700 text-left hover:shadow-xl transition-all duration-300"
@@ -274,7 +323,7 @@ export default function DashboardPage() {
               </motion.button>
 
               <motion.button
-                onClick={() => router.push('/dashboard/nft')}
+                onClick={() => handleNavigation('/dashboard/nft')}
                 whileHover={{ scale: 1.02, y: -2 }}
                 whileTap={{ scale: 0.98 }}
                 className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg border border-gray-100 dark:border-gray-700 text-left hover:shadow-xl transition-all duration-300"
@@ -287,6 +336,23 @@ export default function DashboardPage() {
                 </h3>
                 <p className="text-sm text-gray-600 dark:text-gray-300">
                   Check your soulbound Credit NFT and its evolution
+                </p>
+              </motion.button>
+
+              <motion.button
+                onClick={() => handleNavigation('/dashboard/trading')}
+                whileHover={{ scale: 1.02, y: -2 }}
+                whileTap={{ scale: 0.98 }}
+                className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg border border-gray-100 dark:border-gray-700 text-left hover:shadow-xl transition-all duration-300"
+              >
+                <div className="w-12 h-12 bg-purple-100 dark:bg-purple-900 rounded-xl flex items-center justify-center mb-4">
+                  <TrendingUp className="w-6 h-6 text-purple-600 dark:text-purple-400" />
+                </div>
+                <h3 className="font-semibold text-gray-900 dark:text-white mb-2">
+                  Trading
+                </h3>
+                <p className="text-sm text-gray-600 dark:text-gray-300">
+                  Advanced trading platform coming soon
                 </p>
               </motion.button>
             </div>
@@ -436,7 +502,7 @@ export default function DashboardPage() {
                     Payment due in 7 days
                   </div>
                   <motion.button
-                    onClick={() => router.push('/dashboard/loans?tab=repay')}
+                    onClick={() => handleNavigation('/dashboard/loans?tab=repay')}
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     className="mt-4 w-full bg-white text-orange-600 font-semibold py-2 px-4 rounded-lg hover:bg-orange-50 transition-colors"

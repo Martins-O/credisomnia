@@ -5,6 +5,19 @@ import { Address, parseUnits, formatUnits } from 'viem'
 import { CONTRACTS } from '../contracts'
 import { useCallback } from 'react'
 
+// Error handling wrapper for contract calls
+const withErrorHandling = <T extends (...args: any[]) => Promise<any>>(fn: T): T => {
+  return (async (...args: any[]) => {
+    try {
+      return await fn(...args);
+    } catch (error: any) {
+      console.error('Contract call failed:', error);
+      const message = error?.message || error?.reason || 'Transaction failed';
+      throw new Error(`Contract Error: ${message}`);
+    }
+  }) as T;
+};
+
 // Types for contract interactions
 export interface CreditProfile {
   creditScore: bigint
@@ -83,23 +96,23 @@ export function useCreditOracle() {
     })
   }
 
-  const recordRepayment = useCallback(async (userAddress: Address, amount: bigint, onTime: boolean) => {
+  const recordRepayment = useCallback(withErrorHandling(async (userAddress: Address, amount: bigint, onTime: boolean) => {
     return writeContractAsync({
       address: CONTRACTS.CreditOracle.address,
       abi: CONTRACTS.CreditOracle.abi,
       functionName: 'recordRepayment',
       args: [userAddress, amount, onTime],
     })
-  }, [writeContractAsync])
+  }), [writeContractAsync])
 
-  const recordSavingsActivity = useCallback(async (userAddress: Address, amount: bigint, isDeposit: boolean) => {
+  const recordSavingsActivity = useCallback(withErrorHandling(async (userAddress: Address, amount: bigint, isDeposit: boolean) => {
     return writeContractAsync({
       address: CONTRACTS.CreditOracle.address,
       abi: CONTRACTS.CreditOracle.abi,
       functionName: 'recordSavingsActivity',
       args: [userAddress, amount, isDeposit],
     })
-  }, [writeContractAsync])
+  }), [writeContractAsync])
 
   return {
     useCreditScore,
@@ -214,46 +227,7 @@ export function useLendingPool() {
     })
   }, [writeContractAsync])
 
-  // Flash Loan Functions
-  const useFlashLoanPremiumRate = () => {
-    return useReadContract({
-      address: CONTRACTS.LendingPool.address,
-      abi: CONTRACTS.LendingPool.abi,
-      functionName: 'getFlashLoanPremiumRate',
-    })
-  }
-
-  const useFlashLoanFee = (amount?: bigint) => {
-    return useReadContract({
-      address: CONTRACTS.LendingPool.address,
-      abi: CONTRACTS.LendingPool.abi,
-      functionName: 'getFlashLoanFee',
-      args: amount ? [amount] : undefined,
-      query: { enabled: !!amount }
-    })
-  }
-
-  const useTotalFlashLoanFees = () => {
-    return useReadContract({
-      address: CONTRACTS.LendingPool.address,
-      abi: CONTRACTS.LendingPool.abi,
-      functionName: 'getTotalFlashLoanFees',
-    })
-  }
-
-  const executeFlashLoan = useCallback(async (
-    receiverAddress: Address, 
-    asset: Address, 
-    amount: bigint, 
-    params: `0x${string}` = '0x'
-  ) => {
-    return writeContractAsync({
-      address: CONTRACTS.LendingPool.address,
-      abi: CONTRACTS.LendingPool.abi,
-      functionName: 'flashLoan',
-      args: [receiverAddress, asset, amount, params],
-    })
-  }, [writeContractAsync])
+  // Flash Loan functionality temporarily disabled for security
 
   return {
     useLoan,
@@ -267,11 +241,6 @@ export function useLendingPool() {
     liquidate,
     addLiquidity,
     removeLiquidity,
-    // Flash Loan functions
-    useFlashLoanPremiumRate,
-    useFlashLoanFee,
-    useTotalFlashLoanFees,
-    executeFlashLoan,
   }
 }
 
@@ -374,14 +343,14 @@ export function useCreditNFT() {
     })
   }
 
-  const mintCreditNFT = useCallback(async (to: Address, creditScore: bigint) => {
+  const mintCreditNFT = useCallback(withErrorHandling(async (to: Address, creditScore: bigint) => {
     return writeContractAsync({
       address: CONTRACTS.CreditNFT.address,
       abi: CONTRACTS.CreditNFT.abi,
       functionName: 'mintCreditNFT',
       args: [to, creditScore],
     })
-  }, [writeContractAsync])
+  }), [writeContractAsync])
 
   const updateCreditScore = useCallback(async (
     tokenId: bigint, 
