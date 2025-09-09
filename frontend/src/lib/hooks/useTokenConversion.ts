@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useCallback, useMemo } from 'react'
-import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt } from 'wagmi'
+import { useState, useCallback, useMemo, useEffect } from 'react'
+import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt, useBalance } from 'wagmi'
 import { parseUnits, formatUnits, Address } from 'viem'
 import { useNotificationStore } from '@/lib/store/defi-store'
 import { 
@@ -67,19 +67,21 @@ export function useTokenConversion() {
     query: { enabled: !!address && conversionState.fromToken.address !== '0x0000000000000000000000000000000000000000' }
   })
 
-  // Get native balance for STT
-  const { data: nativeBalance } = useReadContract({
-    address: undefined,
-    abi: [],
-    functionName: 'getBalance',
-    args: address ? [address] : undefined,
-    query: { enabled: !!address && conversionState.fromToken.address === '0x0000000000000000000000000000000000000000' }
+  // Get native balance for STT using the same reliable method as SavingsVault
+  const { data: nativeBalance } = useBalance({
+    address: address as `0x${string}`,
+    chainId: 50312, // Specify Somnia Testnet chain ID
+    query: { 
+      enabled: !!address && conversionState.fromToken.address === '0x0000000000000000000000000000000000000000',
+      refetchInterval: 5000, // Keep in sync with SavingsVault
+      staleTime: 1000,
+    }
   })
 
   // Calculate current balance
   const currentBalance = useMemo(() => {
     if (conversionState.fromToken.address === '0x0000000000000000000000000000000000000000') {
-      return nativeBalance ? formatUnits(nativeBalance as bigint, 18) : '0'
+      return nativeBalance?.value ? formatUnits(nativeBalance.value, 18) : '0'
     }
     return tokenBalance ? formatUnits(tokenBalance as bigint, conversionState.fromToken.decimals) : '0'
   }, [tokenBalance, nativeBalance, conversionState.fromToken])
@@ -183,10 +185,18 @@ export function useTokenConversion() {
       }
 
       addNotification({
-        type: 'success',
-        title: 'Conversion Submitted',
-        description: `Converting ${quote.inputAmount} ${conversionState.fromToken.symbol} to ${conversionState.toToken.symbol}`,
+        type: 'info',
+        title: 'Demo Conversion Completed',
+        description: `Simulated conversion of ${quote.inputAmount} ${conversionState.fromToken.symbol} to ${quote.outputAmount} ${conversionState.toToken.symbol}. Note: This is a testnet demo - balances will refresh shortly.`,
       })
+
+      // Force refresh of balance hooks after simulated conversion
+      setTimeout(() => {
+        // This will trigger a re-fetch of the balance hooks
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('refreshBalances'))
+        }
+      }, 2000)
 
       return hash
     } catch (error: any) {
@@ -225,6 +235,23 @@ export function useTokenConversion() {
       inputAmount: maxAmount.toFixed(prev.fromToken.decimals),
     }))
   }, [currentBalance])
+
+  // Listen for balance refresh events
+  useEffect(() => {
+    const handleRefreshBalances = () => {
+      console.log('TokenConversion: Received balance refresh event, refetching balance...')
+      // Trigger refetch of balance hooks by updating the query
+      if (typeof window !== 'undefined') {
+        // Force a re-render to trigger balance refetch
+        setConversionState(prev => ({ ...prev }))
+      }
+    }
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('refreshBalances', handleRefreshBalances)
+      return () => window.removeEventListener('refreshBalances', handleRefreshBalances)
+    }
+  }, [])
 
   return {
     // State

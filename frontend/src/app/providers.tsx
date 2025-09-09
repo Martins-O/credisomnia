@@ -15,7 +15,7 @@ const somniaTestnet = defineChain({
     symbol: 'STT',
   },
   rpcUrls: {
-    default: { http: ['https://rpc-testnet.somnia.network'] },
+    default: { http: ['https://rpc.ankr.com/somnia_testnet/cc6c398a6a58ec4606b6694cdd5f950cd021df6bd998733fc2776f6b0e7664cc'] },
   },
   blockExplorers: {
     default: { 
@@ -36,7 +36,7 @@ function getWagmiConfig() {
     globalWagmiConfig = createConfig({
       chains: [somniaTestnet],
       transports: {
-        [somniaTestnet.id]: http(process.env.NEXT_PUBLIC_RPC_URL || 'https://rpc-testnet.somnia.network'),
+        [somniaTestnet.id]: http(process.env.NEXT_PUBLIC_RPC_URL || 'https://rpc.ankr.com/somnia_testnet/cc6c398a6a58ec4606b6694cdd5f950cd021df6bd998733fc2776f6b0e7664cc'),
       },
       ssr: true,
     });
