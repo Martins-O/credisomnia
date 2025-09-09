@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useAccount } from 'wagmi'
-import { ConnectButton } from '@rainbow-me/rainbowkit'
+import { SimpleConnectButton as ConnectButton } from '@/components/ui/SimpleConnectButton'
 import { 
   ChevronRightIcon,
   ShieldCheckIcon,

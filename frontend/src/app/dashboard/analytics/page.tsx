@@ -15,6 +15,23 @@ export default function AnalyticsPage() {
   const { address } = useAccount()
   const { creditScore, creditProfile, savingsBalance, formatBalance } = useCredisomnia()
   const { userLoans } = useDefiStore()
+
+  // Check if wallet is connected
+  if (!address) {
+    return (
+      <div className="min-h-96 flex items-center justify-center bg-white rounded-xl shadow-sm border border-gray-200">
+        <div className="text-center">
+          <ChartBarIcon className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">
+            Connect Your Wallet
+          </h2>
+          <p className="text-gray-600">
+            Connect your wallet to view your analytics dashboard
+          </p>
+        </div>
+      </div>
+    )
+  }
   
   // Generate historical data based on current credit profile
   const generateHistoricalData = () => {
@@ -40,13 +57,25 @@ export default function AnalyticsPage() {
   const scoreChange = currentScore - previousScore
   const isScoreImproving = scoreChange > 0
 
-  // Process loan data
-  const loanHistory = userLoans.map((loan) => ({
-    date: new Date(Number(loan.startTimestamp) * 1000).toISOString().split('T')[0],
-    amount: Number(formatTokenAmount(loan.principalAmount)),
-    status: loan.status === 0 ? 'Active' : loan.status === 1 ? 'Repaid' : 'Liquidated',
-    onTime: loan.status !== 2 // Not liquidated means on time
-  }))
+  // Process loan data safely
+  const loanHistory = userLoans ? userLoans.map((loan) => {
+    try {
+      return {
+        date: new Date(Number(loan.startTimestamp || 0n) * 1000).toISOString().split('T')[0],
+        amount: Number(formatTokenAmount(loan.principalAmount || 0n)),
+        status: loan.status === 0 ? 'Active' : loan.status === 1 ? 'Repaid' : 'Liquidated',
+        onTime: loan.status !== 2 // Not liquidated means on time
+      }
+    } catch (error) {
+      console.warn('Error processing loan data:', error)
+      return {
+        date: new Date().toISOString().split('T')[0],
+        amount: 0,
+        status: 'Unknown',
+        onTime: true
+      }
+    }
+  }).filter(loan => loan.amount > 0) : []
 
   const onTimeRate = loanHistory.length > 0 ? 
     (loanHistory.filter(loan => loan.onTime).length / loanHistory.length * 100) : 100

@@ -2,10 +2,8 @@
 
 import React, { useMemo } from 'react';
 import { WagmiProvider, createConfig, http } from 'wagmi';
-import { RainbowKitProvider, getDefaultConfig } from '@rainbow-me/rainbowkit';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { defineChain } from 'viem';
-import '@rainbow-me/rainbowkit/styles.css';
 
 // Define Somnia testnet
 const somniaTestnet = defineChain({
@@ -28,24 +26,23 @@ const somniaTestnet = defineChain({
   testnet: true,
 });
 
-// Create wagmi config (singleton)
-const projectId = process.env.NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID || '2f8c6f1e6b0a5c4d3e2f1a9b8c7d6e5f4a3b2c1d0e9f8a7b6c5d4e3f2a1b0c9d';
-const isPlaceholderProjectId = projectId === '2f8c6f1e6b0a5c4d3e2f1a9b8c7d6e5f4a3b2c1d0e9f8a7b6c5d4e3f2a1b0c9d';
+// Simplified config without WalletConnect to avoid lit dependency issues
 
-// Warn in development about placeholder project ID
-if (process.env.NODE_ENV === 'development' && isPlaceholderProjectId) {
-  console.warn('⚠️  Using placeholder WalletConnect Project ID. Get a real one from https://cloud.walletconnect.com for production');
+// Singleton wagmi config to prevent double initialization
+let globalWagmiConfig: any = undefined;
+
+function getWagmiConfig() {
+  if (!globalWagmiConfig) {
+    globalWagmiConfig = createConfig({
+      chains: [somniaTestnet],
+      transports: {
+        [somniaTestnet.id]: http(process.env.NEXT_PUBLIC_RPC_URL || 'https://rpc-testnet.somnia.network'),
+      },
+      ssr: true,
+    });
+  }
+  return globalWagmiConfig;
 }
-
-const wagmiConfig = getDefaultConfig({
-  appName: process.env.NEXT_PUBLIC_APP_NAME || 'Credisomnia DeFi Platform',
-  projectId,
-  chains: [somniaTestnet],
-  transports: {
-    [somniaTestnet.id]: http(process.env.NEXT_PUBLIC_RPC_URL || 'https://rpc-testnet.somnia.network'),
-  },
-  ssr: true, // Enable SSR support
-});
 
 // Create query client (singleton)
 let globalQueryClient: QueryClient | undefined = undefined;
@@ -79,24 +76,14 @@ interface ProvidersProps {
 }
 
 export function Providers({ children }: ProvidersProps) {
-  // Use memoized query client to prevent multiple initializations
+  // Use memoized configurations to prevent multiple initializations
+  const wagmiConfig = useMemo(() => getWagmiConfig(), []);
   const queryClient = useMemo(() => getQueryClient(), []);
 
   return (
     <WagmiProvider config={wagmiConfig} reconnectOnMount={true}>
       <QueryClientProvider client={queryClient}>
-        <RainbowKitProvider
-          modalSize="compact"
-          initialChain={somniaTestnet}
-          appInfo={{
-            appName: 'Credisomnia',
-            learnMoreUrl: 'https://docs.credisomnia.com',
-          }}
-          locale="en-US"
-          coolMode={false}
-        >
-          {children}
-        </RainbowKitProvider>
+        {children}
       </QueryClientProvider>
     </WagmiProvider>
   );

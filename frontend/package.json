@@ -22,6 +22,7 @@
     "@headlessui/react": "^2.2.7",
     "@heroicons/react": "^2.2.0",
     "@hookform/resolvers": "^3.3.1",
+    "@lit/reactive-element": "^2.1.1",
     "@rainbow-me/rainbowkit": "^2.1.6",
     "@tailwindcss/aspect-ratio": "^0.4.2",
     "@tailwindcss/forms": "^0.5.10",
@@ -32,6 +33,9 @@
     "date-fns": "^2.30.0",
     "ethers": "^6.15.0",
     "framer-motion": "^10.16.0",
+    "lit": "^3.3.1",
+    "lit-element": "^4.2.1",
+    "lit-html": "^3.3.1",
     "lucide-react": "^0.290.0",
     "next": "^14.2.32",
     "react": "^18.3.1",
@@ -81,5 +85,11 @@
   },
   "optionalDependencies": {
     "pino-pretty": "^13.1.1"
+  },
+  "resolutions": {
+    "lit": "3.3.1",
+    "@lit/reactive-element": "2.1.1",
+    "lit-element": "4.2.1",
+    "lit-html": "3.3.1"
   }
 }

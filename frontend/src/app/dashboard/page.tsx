@@ -13,7 +13,7 @@ import {
   Shield,
   Zap
 } from 'lucide-react';
-import { ConnectButton } from '@rainbow-me/rainbowkit';
+import { SimpleConnectButton as ConnectButton } from '@/components/ui/SimpleConnectButton';
 import { useAccount } from 'wagmi';
 import { useRouter } from 'next/navigation';
 import { useCredisomnia } from '@/hooks/useCredisomnia';

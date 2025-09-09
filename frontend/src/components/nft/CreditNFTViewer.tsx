@@ -47,7 +47,7 @@ export default function CreditNFTViewer() {
   const { data: creditProfileData } = creditOracle.useCreditProfile(address!)
   
   // Get user's token ID
-  const { data: userTokenId } = useReadContract({
+  const { data: userTokenId, error: tokenIdError } = useReadContract({
     address: CONTRACTS.CreditNFT.address,
     abi: CONTRACTS.CreditNFT.abi,
     functionName: 'getTokenIdByUser',
@@ -56,7 +56,7 @@ export default function CreditNFTViewer() {
   })
 
   // Get token URI if user has NFT
-  const { data: tokenURI } = useReadContract({
+  const { data: tokenURI, error: tokenURIError } = useReadContract({
     address: CONTRACTS.CreditNFT.address,
     abi: CONTRACTS.CreditNFT.abi,
     functionName: 'tokenURI',
@@ -101,6 +101,18 @@ export default function CreditNFTViewer() {
   // Process NFT data from contract
   useEffect(() => {
     if (!address) {
+      setIsLoading(false)
+      return
+    }
+
+    // Handle errors from contract calls
+    if (tokenIdError || tokenURIError) {
+      console.error('Contract read errors:', { tokenIdError, tokenURIError })
+      addNotification({
+        type: 'error',
+        title: 'Contract Read Error',
+        description: 'Could not fetch NFT data from contract. Please check network connection.',
+      })
       setIsLoading(false)
       return
     }
@@ -157,7 +169,7 @@ export default function CreditNFTViewer() {
     } finally {
       setIsLoading(false)
     }
-  }, [address, nftBalanceData, userTokenId, tokenURI, creditScore, addNotification, generateNFTMetadata])
+  }, [address, nftBalanceData, userTokenId, tokenURI, creditScore, addNotification, generateNFTMetadata, tokenIdError, tokenURIError])
 
   // Generate NFT image URL based on credit score (matches contract design)
   const generateNFTImage = (score: number, color: string): string => {

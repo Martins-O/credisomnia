@@ -7,14 +7,7 @@ import { CONTRACTS } from '../contracts'
 import { useDefiStore, useNotificationStore, useTransactionStore } from '../store/defi-store'
 import { useCreditOracle, useLendingPool, useSavingsVault, useCreditNFT } from './useContracts'
 
-interface FlashLoanEvent {
-  target: string
-  initiator: string
-  asset: string
-  amount: bigint
-  premium: bigint
-  timestamp: number
-}
+// FlashLoan functionality removed for security
 
 export function useRealTimeUpdates() {
   const { address } = useAccount()
@@ -30,8 +23,7 @@ export function useRealTimeUpdates() {
     refreshAllData 
   } = useDefiStore()
 
-  // State for tracking flash loan events
-  const [flashLoanEvents, setFlashLoanEvents] = useState<FlashLoanEvent[]>([])
+  // Flash loan event tracking removed
 
   // Contract hooks for data fetching
   const creditOracle = useCreditOracle()
@@ -225,38 +217,7 @@ export function useRealTimeUpdates() {
     },
   })
 
-  // Watch for Flash Loan events
-  useWatchContractEvent({
-    address: CONTRACTS.LendingPool.address,
-    abi: CONTRACTS.LendingPool.abi,
-    eventName: 'FlashLoan',
-    onLogs(logs) {
-      logs.forEach((log) => {
-        // Add to flash loan events history
-        if (log.args.target && log.args.initiator && log.args.asset && log.args.amount && log.args.premium) {
-          const newEvent: FlashLoanEvent = {
-            target: log.args.target,
-            initiator: log.args.initiator,
-            asset: log.args.asset,
-            amount: log.args.amount,
-            premium: log.args.premium,
-            timestamp: Date.now()
-          }
-          setFlashLoanEvents(prev => [...prev.slice(-49), newEvent]) // Keep last 50 events
-        }
-
-        // Show notification if user initiated
-        if (log.args.initiator === address) {
-          addNotification({
-            type: 'success',
-            title: 'Flash Loan Executed',
-            description: `Flash loan of ${log.args.amount?.toString()} tokens completed successfully`,
-          })
-          debouncedRefresh('loans')
-        }
-      })
-    },
-  })
+  // Flash Loan event watching removed for security
 
   // Periodic data refresh based on block number
   useEffect(() => {
@@ -317,8 +278,6 @@ export function useRealTimeUpdates() {
     refreshCredit: () => debouncedRefresh('credit', 0),
     refreshNFT: () => debouncedRefresh('nft', 0),
     refreshAll: () => refreshAllData(),
-    // Flash loan event data
-    flashLoanEvents,
   }
 }
 

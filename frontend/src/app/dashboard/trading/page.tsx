@@ -45,38 +45,50 @@ const features = [
   {
     icon: <BarChart3 className="w-8 h-8" />,
     title: "Advanced Trading Interface",
-    description: "Professional-grade charts with technical indicators, order book, and real-time price feeds.",
+    description: "Professional-grade charts with technical indicators, order book, and real-time price feeds for all major DeFi pairs.",
     status: "Development"
   },
   {
     icon: <ArrowUpDown className="w-8 h-8" />,
-    title: "Automated Trading Strategies", 
-    description: "Set up DCA, grid trading, and rebalancing strategies based on your credit score.",
-    status: "Planning"
+    title: "Credit-Based Trading Limits", 
+    description: "Higher trading limits and reduced fees based on your credit score. Build trust, get better terms.",
+    status: "Ready"
   },
   {
     icon: <Shield className="w-8 h-8" />,
-    title: "Credit-Based Leverage",
-    description: "Access leveraged trading with rates determined by your on-chain credit history.",
-    status: "Research"
+    title: "Smart Risk Management",
+    description: "AI-powered risk assessment prevents over-leverage and protects your credit score from bad trades.",
+    status: "Development"
   },
   {
     icon: <Target className="w-8 h-8" />,
-    title: "Smart Order Management",
-    description: "Stop-loss, take-profit, and conditional orders with credit score optimization.",
+    title: "Automated DCA & Grid Trading",
+    description: "Set up dollar-cost averaging and grid strategies that adapt to market conditions automatically.",
     status: "Planning"
   },
   {
     icon: <Zap className="w-8 h-8" />,
-    title: "Cross-Chain Trading",
-    description: "Trade assets across multiple chains while maintaining unified credit scoring.",
+    title: "Cross-Chain Arbitrage",
+    description: "Find and execute arbitrage opportunities across chains while maintaining unified credit history.",
     status: "Research"
   },
   {
     icon: <Activity className="w-8 h-8" />,
-    title: "Portfolio Analytics",
-    description: "Track P&L, risk metrics, and trading performance impact on credit score.",
+    title: "Trading Performance Analytics",
+    description: "Detailed P&L tracking, win rates, and how your trading performance impacts your credit score.",
     status: "Development"
+  },
+  {
+    icon: <Coins className="w-8 h-8" />,
+    title: "Yield Farming Integration",
+    description: "Seamlessly transition between trading and yield farming based on market opportunities.",
+    status: "Planning"
+  },
+  {
+    icon: <Star className="w-8 h-8" />,
+    title: "Social Trading & Copy Trading",
+    description: "Follow and copy trades from high-credit-score traders, or let others copy your successful strategies.",
+    status: "Research"
   }
 ];
 
@@ -110,9 +122,9 @@ export default function TradingPage() {
               The future of DeFi trading powered by credit scoring. Trade smarter with personalized rates, 
               automated strategies, and cross-chain capabilities.
             </p>
-            <div className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-primary-500 to-secondary-500 text-white font-semibold rounded-xl">
+            <div className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-primary-500 to-secondary-500 text-white font-semibold rounded-xl shadow-lg">
               <Clock className="w-5 h-5 mr-2" />
-              Coming Soon - Q2 2025
+              Coming Soon - Q1 2025
             </div>
           </motion.div>
 
@@ -179,7 +191,7 @@ export default function TradingPage() {
             <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-8 text-center">
               Upcoming Trading Features
             </h2>
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
               {features.map((feature, index) => (
                 <motion.div
                   key={feature.title}
@@ -192,7 +204,9 @@ export default function TradingPage() {
                       {feature.icon}
                     </div>
                     <div className={`px-3 py-1 rounded-full text-xs font-medium ${
-                      feature.status === 'Development' 
+                      feature.status === 'Ready' 
+                        ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400'
+                        : feature.status === 'Development' 
                         ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400'
                         : feature.status === 'Planning'
                         ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400'
