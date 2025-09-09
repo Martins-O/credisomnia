@@ -4,7 +4,7 @@ import React, { useState } from 'react'
 import { motion } from 'framer-motion'
 import { Zap, TrendingUp, AlertTriangle, Info } from 'lucide-react'
 import { useAccount } from 'wagmi'
-import { FlashLoanInterface, FlashLoanAnalytics } from '@/components/flashloan'
+// import { FlashLoanInterface, FlashLoanAnalytics } from '@/components/flashloan'
 import NotificationSystem from '@/components/notifications/NotificationSystem'
 
 const containerVariants = {
@@ -177,19 +177,6 @@ export default function FlashLoansPage() {
                 </div>
               </button>
             </div>
-          </motion.div>
-
-          {/* Tab Content */}
-          <motion.div variants={itemVariants}>
-            {activeTab === 'interface' && (
-              <FlashLoanInterface
-                onSuccess={handleFlashLoanSuccess}
-                onError={handleFlashLoanError}
-              />
-            )}
-            {activeTab === 'analytics' && (
-              <FlashLoanAnalytics />
-            )}
           </motion.div>
         </motion.div>
       </div>
