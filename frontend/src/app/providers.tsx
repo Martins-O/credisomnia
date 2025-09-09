@@ -45,7 +45,6 @@ const wagmiConfig = getDefaultConfig({
     [somniaTestnet.id]: http(process.env.NEXT_PUBLIC_RPC_URL || 'https://rpc-testnet.somnia.network'),
   },
   ssr: true, // Enable SSR support
-  storage: typeof window !== 'undefined' ? localStorage : undefined, // Persist wallet connection
 });
 
 // Create query client (singleton)
@@ -92,7 +91,6 @@ export function Providers({ children }: ProvidersProps) {
           appInfo={{
             appName: 'Credisomnia',
             learnMoreUrl: 'https://docs.credisomnia.com',
-            disclaimer: 'By connecting your wallet, you agree to the Terms of Service and Privacy Policy.',
           }}
           locale="en-US"
           coolMode={false}

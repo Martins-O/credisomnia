@@ -96,23 +96,27 @@ export function useCreditOracle() {
     })
   }
 
-  const recordRepayment = useCallback(withErrorHandling(async (userAddress: Address, amount: bigint, onTime: boolean) => {
-    return writeContractAsync({
-      address: CONTRACTS.CreditOracle.address,
-      abi: CONTRACTS.CreditOracle.abi,
-      functionName: 'recordRepayment',
-      args: [userAddress, amount, onTime],
-    })
-  }), [writeContractAsync])
+  const recordRepayment = useCallback(async (userAddress: Address, amount: bigint, onTime: boolean) => {
+    return withErrorHandling(async () => {
+      return writeContractAsync({
+        address: CONTRACTS.CreditOracle.address,
+        abi: CONTRACTS.CreditOracle.abi,
+        functionName: 'recordRepayment',
+        args: [userAddress, amount, onTime],
+      })
+    })()
+  }, [writeContractAsync])
 
-  const recordSavingsActivity = useCallback(withErrorHandling(async (userAddress: Address, amount: bigint, isDeposit: boolean) => {
-    return writeContractAsync({
-      address: CONTRACTS.CreditOracle.address,
-      abi: CONTRACTS.CreditOracle.abi,
-      functionName: 'recordSavingsActivity',
-      args: [userAddress, amount, isDeposit],
-    })
-  }), [writeContractAsync])
+  const recordSavingsActivity = useCallback(async (userAddress: Address, amount: bigint, isDeposit: boolean) => {
+    return withErrorHandling(async () => {
+      return writeContractAsync({
+        address: CONTRACTS.CreditOracle.address,
+        abi: CONTRACTS.CreditOracle.abi,
+        functionName: 'recordSavingsActivity',
+        args: [userAddress, amount, isDeposit],
+      })
+    })()
+  }, [writeContractAsync])
 
   return {
     useCreditScore,
@@ -343,14 +347,16 @@ export function useCreditNFT() {
     })
   }
 
-  const mintCreditNFT = useCallback(withErrorHandling(async (to: Address, creditScore: bigint) => {
-    return writeContractAsync({
-      address: CONTRACTS.CreditNFT.address,
-      abi: CONTRACTS.CreditNFT.abi,
-      functionName: 'mintCreditNFT',
-      args: [to, creditScore],
-    })
-  }), [writeContractAsync])
+  const mintCreditNFT = useCallback(async (to: Address, creditScore: bigint) => {
+    return withErrorHandling(async () => {
+      return writeContractAsync({
+        address: CONTRACTS.CreditNFT.address,
+        abi: CONTRACTS.CreditNFT.abi,
+        functionName: 'mintCreditNFT',
+        args: [to, creditScore],
+      })
+    })()
+  }, [writeContractAsync])
 
   const updateCreditScore = useCallback(async (
     tokenId: bigint, 
