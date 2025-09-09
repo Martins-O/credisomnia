@@ -2,10 +2,11 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import Image from 'next/image'
-import { useAccount } from 'wagmi'
+import { useAccount, useReadContract } from 'wagmi'
 import { Address } from 'viem'
 import { useCreditNFT, useCreditOracle, formatCreditScore } from '@/lib/hooks/useContracts'
 import { useDefiStore, useNotificationStore } from '@/lib/store/defi-store'
+import { CONTRACTS } from '@/lib/contracts'
 
 interface NFTMetadata {
   name: string
@@ -44,6 +45,24 @@ export default function CreditNFTViewer() {
   // Fetch NFT data
   const { data: nftBalanceData } = creditNFT.useBalanceOf(address!)
   const { data: creditProfileData } = creditOracle.useCreditProfile(address!)
+  
+  // Get user's token ID
+  const { data: userTokenId } = useReadContract({
+    address: CONTRACTS.CreditNFT.address,
+    abi: CONTRACTS.CreditNFT.abi,
+    functionName: 'getTokenIdByUser',
+    args: address ? [address] : undefined,
+    query: { enabled: !!address }
+  })
+
+  // Get token URI if user has NFT
+  const { data: tokenURI } = useReadContract({
+    address: CONTRACTS.CreditNFT.address,
+    abi: CONTRACTS.CreditNFT.abi,
+    functionName: 'tokenURI',
+    args: userTokenId && userTokenId > 0n ? [userTokenId] : undefined,
+    query: { enabled: !!(userTokenId && userTokenId > 0n) }
+  })
 
   // Update NFT balance in store
   useEffect(() => {
@@ -79,65 +98,101 @@ export default function CreditNFTViewer() {
     }
   }, [])
 
-  // Fetch user's NFTs
+  // Process NFT data from contract
   useEffect(() => {
-    const fetchUserNFTs = async () => {
-      if (!address || !nftBalanceData || nftBalanceData === 0n) {
-        setIsLoading(false)
-        return
-      }
-
-      setIsLoading(true)
-      
-      try {
-        const nfts: CreditNFT[] = []
-        
-        // In a real implementation, you would iterate through token IDs
-        // For now, we'll simulate with mock data based on user's credit score
-        if (Number(nftBalanceData) > 0) {
-          const mockNFT: CreditNFT = {
-            tokenId: 1n,
-            owner: address,
-            creditScore: creditScore,
-            tokenURI: `https://api.credisomnia.com/nft/metadata/1`,
-            metadata: generateNFTMetadata(creditScore),
-          }
-          nfts.push(mockNFT)
-        }
-
-        setUserNFTs(nfts)
-      } catch (error) {
-        console.error('Error fetching NFTs:', error)
-        addNotification({
-          type: 'error',
-          title: 'Failed to Load NFTs',
-          description: 'Could not fetch your Credit NFTs',
-        })
-      } finally {
-        setIsLoading(false)
-      }
+    if (!address) {
+      setIsLoading(false)
+      return
     }
 
-    fetchUserNFTs()
-  }, [address, nftBalanceData, creditScore, addNotification, generateNFTMetadata])
+    if (nftBalanceData === 0n || !userTokenId || userTokenId === 0n) {
+      setUserNFTs([])
+      setIsLoading(false)
+      return
+    }
 
-  // Generate NFT image URL based on credit score
+    setIsLoading(true)
+    
+    try {
+      let metadata = generateNFTMetadata(creditScore) // fallback
+      let actualTokenURI = `data:application/json;base64,${btoa(JSON.stringify(metadata))}`
+      
+      // If we have tokenURI from contract, use it
+      if (tokenURI && typeof tokenURI === 'string') {
+        actualTokenURI = tokenURI
+        // Try to decode the base64 JSON metadata from contract
+        try {
+          if (tokenURI.startsWith('data:application/json;base64,')) {
+            const base64Data = tokenURI.split(',')[1]
+            const decodedData = JSON.parse(atob(base64Data))
+            metadata = {
+              name: decodedData.name || metadata.name,
+              description: decodedData.description || metadata.description,
+              image: decodedData.image || metadata.image,
+              attributes: decodedData.attributes || metadata.attributes
+            }
+          }
+        } catch (decodeError) {
+          console.warn('Could not decode contract metadata, using fallback:', decodeError)
+        }
+      }
+
+      const nft: CreditNFT = {
+        tokenId: userTokenId,
+        owner: address,
+        creditScore: creditScore,
+        tokenURI: actualTokenURI,
+        metadata: metadata,
+      }
+
+      setUserNFTs([nft])
+    } catch (error) {
+      console.error('Error processing NFT data:', error)
+      addNotification({
+        type: 'error',
+        title: 'Failed to Load NFTs',
+        description: 'Could not process your Credit NFT data',
+      })
+      setUserNFTs([])
+    } finally {
+      setIsLoading(false)
+    }
+  }, [address, nftBalanceData, userTokenId, tokenURI, creditScore, addNotification, generateNFTMetadata])
+
+  // Generate NFT image URL based on credit score (matches contract design)
   const generateNFTImage = (score: number, color: string): string => {
-    // In a real implementation, this would generate actual NFT images
+    // Get tier colors that match the contract
+    const getColorsForScore = (creditScore: number) => {
+      if (creditScore >= 800) return { bg1: '#1a5f3f', bg2: '#2d8f6f' } // Excellent - Green
+      if (creditScore >= 740) return { bg1: '#1a4f5f', bg2: '#2d7f8f' } // Very Good - Teal
+      if (creditScore >= 670) return { bg1: '#1a3f5f', bg2: '#2d5f8f' } // Good - Blue
+      if (creditScore >= 580) return { bg1: '#5f4f1a', bg2: '#8f7f2d' } // Fair - Orange
+      return { bg1: '#5f1a1a', bg2: '#8f2d2d' } // Poor - Red
+    }
+
+    const { bg1, bg2 } = getColorsForScore(score)
+    const tier = score >= 800 ? 'Excellent' : score >= 740 ? 'Very Good' : score >= 670 ? 'Good' : score >= 580 ? 'Fair' : 'Poor'
+
     return `data:image/svg+xml;base64,${btoa(`
-      <svg width="400" height="400" xmlns="http://www.w3.org/2000/svg">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 350 500" width="350" height="500">
         <defs>
           <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" style="stop-color:${color};stop-opacity:0.8" />
-            <stop offset="100%" style="stop-color:${color};stop-opacity:0.3" />
+            <stop offset="0%" style="stop-color:${bg1}"/>
+            <stop offset="100%" style="stop-color:${bg2}"/>
           </linearGradient>
         </defs>
-        <rect width="400" height="400" fill="url(#bg)" rx="20"/>
-        <circle cx="200" cy="150" r="80" fill="none" stroke="${color}" stroke-width="6"/>
-        <text x="200" y="160" font-family="Arial, sans-serif" font-size="36" font-weight="bold" text-anchor="middle" fill="${color}">${score}</text>
-        <text x="200" y="240" font-family="Arial, sans-serif" font-size="18" text-anchor="middle" fill="${color}">CREDIT SCORE</text>
-        <text x="200" y="320" font-family="Arial, sans-serif" font-size="14" text-anchor="middle" fill="${color}">Credisomnia DeFi</text>
-        <text x="200" y="360" font-family="Arial, sans-serif" font-size="12" text-anchor="middle" fill="${color}">Somnia Network</text>
+        <rect width="350" height="500" fill="url(#bg)"/>
+        <rect x="20" y="20" width="310" height="460" rx="15" fill="rgba(255,255,255,0.1)"/>
+        <text x="175" y="60" font-family="Arial,sans-serif" font-size="24" font-weight="bold" text-anchor="middle" fill="white">CREDISOMNIA</text>
+        <text x="175" y="85" font-family="Arial,sans-serif" font-size="12" text-anchor="middle" fill="rgba(255,255,255,0.7)">Credit Score NFT</text>
+        <rect x="40" y="120" width="270" height="280" rx="10" fill="rgba(255,255,255,0.2)"/>
+        <text x="175" y="180" font-family="Arial,sans-serif" font-size="48" font-weight="bold" text-anchor="middle" fill="white">${score}</text>
+        <text x="175" y="210" font-family="Arial,sans-serif" font-size="16" text-anchor="middle" fill="rgba(255,255,255,0.9)">${tier}</text>
+        <text x="60" y="250" font-family="Arial,sans-serif" font-size="14" fill="rgba(255,255,255,0.8)">Repayments: 0</text>
+        <text x="60" y="275" font-family="Arial,sans-serif" font-size="14" fill="rgba(255,255,255,0.8)">Streak: 0</text>
+        <text x="60" y="300" font-family="Arial,sans-serif" font-size="14" fill="rgba(255,255,255,0.8)">Member Since: ${new Date().getFullYear()}</text>
+        <text x="175" y="450" font-family="Arial,sans-serif" font-size="10" text-anchor="middle" fill="rgba(255,255,255,0.6)">Soulbound - Non-Transferable</text>
+        <text x="175" y="470" font-family="Arial,sans-serif" font-size="8" text-anchor="middle" fill="rgba(255,255,255,0.5)">Somnia Network</text>
       </svg>
     `)}`
   }
@@ -279,6 +334,56 @@ export default function CreditNFTViewer() {
           </div>
         </div>
       )}
+
+      {/* NFT Preview for different scores */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 mb-6">
+        <div className="p-6 border-b border-gray-200">
+          <h3 className="text-lg font-semibold text-gray-900">NFT Preview Gallery</h3>
+          <p className="text-sm text-gray-500 mt-1">
+            See how your NFT evolves with different credit scores
+          </p>
+        </div>
+        <div className="p-6">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+            {[300, 600, 700, 750, 850].map((score) => {
+              const previewMetadata = generateNFTMetadata(score)
+              const tier = score >= 800 ? 'Excellent' : score >= 740 ? 'Very Good' : score >= 670 ? 'Good' : score >= 580 ? 'Fair' : 'Poor'
+              return (
+                <div 
+                  key={score} 
+                  className="text-center group cursor-pointer transform transition-all duration-200 hover:scale-105"
+                >
+                  <div className="aspect-[7/10] relative mb-2 rounded-lg overflow-hidden shadow-lg group-hover:shadow-xl transition-shadow">
+                    <Image
+                      src={previewMetadata.image}
+                      alt={`Credit Score ${score}`}
+                      fill
+                      className="object-cover"
+                    />
+                    <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 transition-all duration-200 flex items-center justify-center">
+                      <div className="text-white font-bold text-lg opacity-0 group-hover:opacity-100 transition-opacity">
+                        Preview
+                      </div>
+                    </div>
+                  </div>
+                  <div className="text-sm">
+                    <div className="font-medium text-gray-900">{score}</div>
+                    <div className={`text-xs font-medium px-2 py-1 rounded-full ${
+                      score >= 800 ? 'bg-green-100 text-green-800' :
+                      score >= 740 ? 'bg-blue-100 text-blue-800' :
+                      score >= 670 ? 'bg-purple-100 text-purple-800' :
+                      score >= 580 ? 'bg-yellow-100 text-yellow-800' :
+                      'bg-red-100 text-red-800'
+                    }`}>
+                      {tier}
+                    </div>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      </div>
 
       {/* NFT Gallery */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200">

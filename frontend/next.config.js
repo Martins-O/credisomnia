@@ -2,12 +2,15 @@
 const nextConfig = {
   reactStrictMode: true,
   swcMinify: true,
+  trailingSlash: false,
   images: {
     domains: ['images.unsplash.com', 'via.placeholder.com'],
+    unoptimized: false,
   },
   env: {
     CUSTOM_KEY: process.env.CUSTOM_KEY,
   },
+  // output: 'standalone', // Commented out for Vercel deployment
   webpack: (config, { isServer }) => {
     // Handle node modules that need to be transpiled
     config.resolve.fallback = {

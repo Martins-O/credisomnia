@@ -45,6 +45,7 @@ const wagmiConfig = getDefaultConfig({
     [somniaTestnet.id]: http(process.env.NEXT_PUBLIC_RPC_URL || 'https://rpc-testnet.somnia.network'),
   },
   ssr: true, // Enable SSR support
+  storage: typeof window !== 'undefined' ? localStorage : undefined, // Persist wallet connection
 });
 
 // Create query client (singleton)
@@ -83,14 +84,18 @@ export function Providers({ children }: ProvidersProps) {
   const queryClient = useMemo(() => getQueryClient(), []);
 
   return (
-    <WagmiProvider config={wagmiConfig}>
+    <WagmiProvider config={wagmiConfig} reconnectOnMount={true}>
       <QueryClientProvider client={queryClient}>
         <RainbowKitProvider
           modalSize="compact"
+          initialChain={somniaTestnet}
           appInfo={{
             appName: 'Credisomnia',
             learnMoreUrl: 'https://docs.credisomnia.com',
+            disclaimer: 'By connecting your wallet, you agree to the Terms of Service and Privacy Policy.',
           }}
+          locale="en-US"
+          coolMode={false}
         >
           {children}
         </RainbowKitProvider>
