@@ -1,15 +1,19 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useAccount } from 'wagmi'
-import { formatUnits } from 'viem'
+import { useState, useEffect, useMemo } from 'react'
+import { useAccount, useBalance, useChainId, usePublicClient } from 'wagmi'
+import { formatUnits, parseUnits } from 'viem'
 import { useSavingsVault, formatTokenAmount, parseTokenAmount } from '@/lib/hooks/useContracts'
 import { useDefiStore, useNotificationStore } from '@/lib/store/defi-store'
+import { usePriceOracle } from '@/lib/hooks/usePriceOracle'
+import { useTokenConversion } from '@/lib/hooks/useTokenConversion'
+import { getNativeToken, getTokenBySymbol } from '@/lib/tokens'
 import TokenConverter from '@/components/conversion/TokenConverter'
 import ConversionAnalytics from '@/components/conversion/ConversionAnalytics'
 
 interface DepositFormData {
-  amount: string
+  sttAmount: string
+  usdcAmount: string
 }
 
 interface WithdrawFormData {
@@ -22,22 +26,118 @@ interface SavingsVaultProps {
 
 export default function SavingsVault({ defaultTab = 'deposit' }: SavingsVaultProps) {
   const { address } = useAccount()
+  const chainId = useChainId()
+  const publicClient = usePublicClient()
   const { addNotification } = useNotificationStore()
   const { savingsAccount, setSavingsAccount, setLoading } = useDefiStore()
 
+  // Check if we're on the correct chain (Somnia Testnet)
+  const isCorrectChain = chainId === 50312
+
   // Contract hooks
   const savingsVault = useSavingsVault()
+  const { getConversionRate, getTokenPrice } = usePriceOracle()
+  const tokenConversion = useTokenConversion()
+  
+  // Get user's STT balance (native token balance)
+  const { data: sttBalance, isLoading: balanceLoading, refetch: refetchBalance } = useBalance({
+    address: address as `0x${string}`,
+    chainId: 50312, // Specify Somnia Testnet chain ID
+    query: { 
+      enabled: !!address && isCorrectChain,
+      refetchInterval: 5000, // Refresh every 5 seconds
+      staleTime: 1000, // Consider stale after 1 second
+    }
+  })
 
   // Local state
   const [activeTab, setActiveTab] = useState<'deposit' | 'withdraw' | 'convert' | 'overview'>(defaultTab)
-  const [depositForm, setDepositForm] = useState<DepositFormData>({ amount: '' })
+  const [depositForm, setDepositForm] = useState<DepositFormData>({ sttAmount: '', usdcAmount: '' })
   const [withdrawForm, setWithdrawForm] = useState<WithdrawFormData>({ amount: '' })
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [conversionLoading, setConversionLoading] = useState(false)
+  const [customBalance, setCustomBalance] = useState<bigint | null>(null)
+  const [customBalanceLoading, setCustomBalanceLoading] = useState(false)
 
   // Fetch savings data
   const { data: accountInfo, refetch: refetchAccount } = savingsVault.useAccountInfo(address!)
   const { data: totalDeposits } = savingsVault.useTotalDeposits()
   const { data: pendingRewards } = savingsVault.useCalculateRewards(address!)
+
+  // Calculate STT to USDC conversion
+  const sttToUsdcRate = useMemo(() => {
+    return getConversionRate('STT', 'USDC')
+  }, [getConversionRate])
+
+  // Calculate USDC amount based on STT input
+  const calculatedUsdcAmount = useMemo(() => {
+    if (!depositForm.sttAmount || parseFloat(depositForm.sttAmount) <= 0) return '0'
+    const sttAmount = parseFloat(depositForm.sttAmount)
+    const usdcAmount = sttAmount * sttToUsdcRate
+    return usdcAmount.toFixed(6)
+  }, [depositForm.sttAmount, sttToUsdcRate])
+
+  // Update USDC amount when STT amount changes
+  useEffect(() => {
+    setDepositForm(prev => ({ ...prev, usdcAmount: calculatedUsdcAmount }))
+  }, [calculatedUsdcAmount])
+
+  // Custom balance fetching function
+  const fetchCustomBalance = async () => {
+    if (!address || !publicClient || !isCorrectChain) return
+
+    setCustomBalanceLoading(true)
+    try {
+      const balance = await publicClient.getBalance({
+        address: address as `0x${string}`
+      })
+      setCustomBalance(balance)
+      console.log('Custom balance fetch result:', { balance: balance.toString() })
+    } catch (error) {
+      console.error('Error fetching custom balance:', error)
+      setCustomBalance(null)
+    } finally {
+      setCustomBalanceLoading(false)
+    }
+  }
+
+  // Use custom balance as fallback if wagmi balance fails
+  const effectiveBalance = sttBalance?.value || customBalance
+  const effectiveBalanceLoading = balanceLoading || customBalanceLoading
+
+  // Format STT balance
+  const sttBalanceFormatted = useMemo(() => {
+    if (effectiveBalanceLoading) return '...'
+    if (!effectiveBalance) return '0'
+    return formatUnits(effectiveBalance, 18)
+  }, [effectiveBalance, effectiveBalanceLoading])
+
+  // Auto-fetch custom balance when wagmi balance is 0
+  useEffect(() => {
+    if (address && isCorrectChain && !balanceLoading && (!sttBalance?.value || sttBalance.value === 0n)) {
+      console.log('Wagmi balance is 0 or null, trying custom balance fetch...')
+      fetchCustomBalance()
+    }
+  }, [address, isCorrectChain, balanceLoading, sttBalance?.value])
+
+  // Debug log to check balance data
+  useEffect(() => {
+    console.log('Balance data:', { 
+      address, 
+      chainId,
+      isCorrectChain,
+      wagmiBalance: sttBalance, 
+      wagmiBalanceValue: sttBalance?.value?.toString(),
+      customBalance: customBalance?.toString(),
+      effectiveBalance: effectiveBalance?.toString(),
+      balanceLoading, 
+      customBalanceLoading,
+      effectiveBalanceLoading,
+      formatted: sttBalanceFormatted,
+      balanceDecimals: sttBalance?.decimals,
+      balanceSymbol: sttBalance?.symbol
+    })
+  }, [address, chainId, isCorrectChain, sttBalance, customBalance, effectiveBalance, balanceLoading, customBalanceLoading, effectiveBalanceLoading, sttBalanceFormatted])
 
   // Update store when account info changes
   useEffect(() => {
@@ -63,31 +163,71 @@ export default function SavingsVault({ defaultTab = 'deposit' }: SavingsVaultPro
     e.preventDefault()
     if (!address || isSubmitting) return
 
-    const { amount } = depositForm
-    if (!amount || parseFloat(amount) <= 0) {
+    const { sttAmount, usdcAmount } = depositForm
+    if (!sttAmount || parseFloat(sttAmount) <= 0) {
       addNotification({
         type: 'error',
         title: 'Invalid Amount',
-        description: 'Please enter a valid deposit amount',
+        description: 'Please enter a valid STT amount',
+      })
+      return
+    }
+
+    // Check if user has sufficient STT balance
+    const sttAmountNum = parseFloat(sttAmount)
+    const availableSTT = parseFloat(sttBalanceFormatted)
+    if (sttAmountNum > availableSTT) {
+      addNotification({
+        type: 'error',
+        title: 'Insufficient Balance',
+        description: `You only have ${availableSTT.toFixed(4)} STT available`,
       })
       return
     }
 
     setIsSubmitting(true)
     setLoading(true)
+    setConversionLoading(true)
 
     try {
-      const amountWei = parseTokenAmount(amount)
-      const hash = await savingsVault.deposit(amountWei)
+      // First convert STT to USDC
+      addNotification({
+        type: 'info',
+        title: 'Converting STT to USDC',
+        description: `Converting ${sttAmount} STT to ${usdcAmount} USDC...`,
+      })
+
+      // Simulate STT to USDC conversion (in real implementation, this would call the conversion contract)
+      const nativeToken = getNativeToken()
+      const usdcToken = getTokenBySymbol('USDC')!
+      
+      // Get conversion quote
+      const quote = await tokenConversion.getQuote(nativeToken, usdcToken, sttAmount)
+      if (!quote) {
+        throw new Error('Unable to get conversion quote')
+      }
+
+      // Execute the conversion
+      const conversionHash = await tokenConversion.executeConversion(quote)
+      
+      addNotification({
+        type: 'success',
+        title: 'Conversion Completed',
+        description: `Converted ${sttAmount} STT to ${quote.outputAmount} USDC`,
+      })
+
+      // Now deposit the USDC to savings vault
+      const usdcAmountWei = parseTokenAmount(quote.outputAmount)
+      const depositHash = await savingsVault.deposit(usdcAmountWei)
       
       addNotification({
         type: 'success',
         title: 'Deposit Submitted',
-        description: `Depositing ${amount} USDC to savings vault`,
+        description: `Depositing ${quote.outputAmount} USDC to savings vault`,
       })
 
       // Reset form
-      setDepositForm({ amount: '' })
+      setDepositForm({ sttAmount: '', usdcAmount: '' })
       
       // Refresh data after transaction
       setTimeout(() => {
@@ -103,6 +243,7 @@ export default function SavingsVault({ defaultTab = 'deposit' }: SavingsVaultPro
     } finally {
       setIsSubmitting(false)
       setLoading(false)
+      setConversionLoading(false)
     }
   }
 
@@ -180,12 +321,18 @@ export default function SavingsVault({ defaultTab = 'deposit' }: SavingsVaultPro
     }, 1000)
   }
 
-  // Calculate projected earnings
-  const calculateProjectedEarnings = (amount: string, months: number) => {
-    if (!amount || parseFloat(amount) <= 0) return 0
-    const principal = parseFloat(amount)
+  // Calculate projected earnings based on USDC amount
+  const calculateProjectedEarnings = (usdcAmount: string, months: number) => {
+    if (!usdcAmount || parseFloat(usdcAmount) <= 0) return 0
+    const principal = parseFloat(usdcAmount)
     const monthlyRate = calculateAPY() / 100 / 12
     return principal * monthlyRate * months
+  }
+
+  // Handle max STT button
+  const handleMaxSTT = () => {
+    const maxSTT = (parseFloat(sttBalanceFormatted) * 0.99).toFixed(6) // Leave some for gas
+    setDepositForm(prev => ({ ...prev, sttAmount: maxSTT }))
   }
 
   if (!address) {
@@ -196,6 +343,36 @@ export default function SavingsVault({ defaultTab = 'deposit' }: SavingsVaultPro
         </p>
       </div>
     )
+  }
+
+  if (!isCorrectChain) {
+    return (
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <div className="text-center">
+          <p className="text-yellow-600 mb-4">
+            Please switch to Somnia Testnet to use the savings vault
+          </p>
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-sm text-gray-700">
+            <p><strong>Current Chain:</strong> {chainId}</p>
+            <p><strong>Required Chain:</strong> 50312 (Somnia Testnet)</p>
+            <p className="mt-2">Switch your wallet to the Somnia Testnet to see your STT balance and use the savings features.</p>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // Debug: Show connection info in development
+  if (process.env.NODE_ENV === 'development') {
+    console.log('Wallet connection debug:', {
+      address,
+      isConnected: !!address,
+      sttBalance: sttBalance,
+      balanceValue: sttBalance?.value?.toString(),
+      decimals: sttBalance?.decimals,
+      symbol: sttBalance?.symbol,
+      formatted: sttBalanceFormatted
+    })
   }
 
   return (
@@ -251,11 +428,33 @@ export default function SavingsVault({ defaultTab = 'deposit' }: SavingsVaultPro
           </div>
 
           <div className="bg-gradient-to-r from-indigo-50 to-indigo-100 p-4 rounded-lg">
-            <div className="text-sm text-indigo-600 font-medium">STT Rate</div>
-            <div className="text-2xl font-bold text-indigo-900">
-              $0.85
+            <div className="flex justify-between items-center mb-1">
+              <div className="text-sm text-indigo-600 font-medium">STT Balance</div>
+              <button 
+                onClick={() => {
+                  refetchBalance()
+                  fetchCustomBalance()
+                }}
+                className="text-xs text-indigo-500 hover:text-indigo-700 p-1"
+                title="Refresh balance"
+              >
+                🔄
+              </button>
             </div>
-            <div className="text-xs text-indigo-600 mt-1">vs USD</div>
+            <div className="text-2xl font-bold text-indigo-900">
+              {effectiveBalanceLoading ? (
+                <span className="animate-pulse">Loading...</span>
+              ) : (
+                `${parseFloat(sttBalanceFormatted || '0').toFixed(4)} STT`
+              )}
+            </div>
+            <div className="text-xs text-indigo-600 mt-1">
+              {effectiveBalanceLoading ? (
+                'Calculating...'
+              ) : (
+                `≈ $${(parseFloat(sttBalanceFormatted || '0') * sttToUsdcRate).toFixed(2)} USD`
+              )}
+            </div>
           </div>
         </div>
 
@@ -265,44 +464,95 @@ export default function SavingsVault({ defaultTab = 'deposit' }: SavingsVaultPro
             <form onSubmit={handleDeposit} className="space-y-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Deposit Amount (USDC)
+                  Deposit Amount (STT)
                 </label>
                 <div className="relative">
                   <input
                     type="number"
-                    step="0.01"
-                    value={depositForm.amount}
-                    onChange={(e) => setDepositForm({ amount: e.target.value })}
+                    step="0.000001"
+                    value={depositForm.sttAmount}
+                    onChange={(e) => setDepositForm(prev => ({ ...prev, sttAmount: e.target.value }))}
                     className="w-full px-3 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-lg"
-                    placeholder="0.00"
+                    placeholder="0.000000"
                   />
-                  <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
-                    <span className="text-gray-500 text-sm">USDC</span>
+                  <div className="absolute inset-y-0 right-0 pr-3 flex items-center space-x-2">
+                    <button
+                      type="button"
+                      onClick={handleMaxSTT}
+                      className="text-xs text-blue-600 hover:text-blue-700 font-medium px-2 py-1 bg-blue-50 rounded"
+                    >
+                      MAX
+                    </button>
+                    <span className="text-gray-500 text-sm">STT</span>
                   </div>
+                </div>
+                <div className="flex justify-between text-sm text-gray-500 mt-1">
+                  <span>
+                    Available: {effectiveBalanceLoading ? 'Loading...' : `${parseFloat(sttBalanceFormatted || '0').toFixed(6)} STT`}
+                    {address && !effectiveBalanceLoading && sttBalanceFormatted === '0' && (
+                      <button 
+                        onClick={() => {
+                          refetchBalance()
+                          fetchCustomBalance()
+                        }}
+                        className="ml-2 text-blue-500 hover:text-blue-700 text-xs underline"
+                      >
+                        Refresh
+                      </button>
+                    )}
+                  </span>
+                  <span>Rate: 1 STT = {sttToUsdcRate.toFixed(6)} USDC</span>
                 </div>
               </div>
 
+              {/* Conversion Preview */}
+              {depositForm.sttAmount && parseFloat(depositForm.sttAmount) > 0 && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <h4 className="font-medium text-blue-800 mb-2">Conversion Preview</h4>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-blue-600">STT Amount:</span>
+                      <span className="font-medium text-blue-900">{depositForm.sttAmount} STT</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-blue-600">USDC Received:</span>
+                      <span className="font-medium text-blue-900">{depositForm.usdcAmount} USDC</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-blue-600">Conversion Rate:</span>
+                      <span className="font-medium text-blue-900">1 STT = {sttToUsdcRate.toFixed(6)} USDC</span>
+                    </div>
+                    {conversionLoading && (
+                      <div className="flex items-center text-blue-600">
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
+                        <span>Processing conversion...</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
               {/* Projected Earnings */}
-              {depositForm.amount && (
+              {depositForm.usdcAmount && parseFloat(depositForm.usdcAmount) > 0 && (
                 <div className="bg-gray-50 p-4 rounded-lg">
-                  <h4 className="font-medium text-gray-900 mb-3">Projected Earnings</h4>
+                  <h4 className="font-medium text-gray-900 mb-3">Projected Earnings (in USDC)</h4>
                   <div className="grid grid-cols-3 gap-4 text-sm">
                     <div>
                       <p className="text-gray-500">1 Month</p>
                       <p className="font-medium text-gray-900">
-                        +{calculateProjectedEarnings(depositForm.amount, 1).toFixed(4)} USDC
+                        +{calculateProjectedEarnings(depositForm.usdcAmount, 1).toFixed(4)} USDC
                       </p>
                     </div>
                     <div>
                       <p className="text-gray-500">6 Months</p>
                       <p className="font-medium text-gray-900">
-                        +{calculateProjectedEarnings(depositForm.amount, 6).toFixed(4)} USDC
+                        +{calculateProjectedEarnings(depositForm.usdcAmount, 6).toFixed(4)} USDC
                       </p>
                     </div>
                     <div>
                       <p className="text-gray-500">1 Year</p>
                       <p className="font-medium text-gray-900">
-                        +{calculateProjectedEarnings(depositForm.amount, 12).toFixed(4)} USDC
+                        +{calculateProjectedEarnings(depositForm.usdcAmount, 12).toFixed(4)} USDC
                       </p>
                     </div>
                   </div>
@@ -311,10 +561,10 @@ export default function SavingsVault({ defaultTab = 'deposit' }: SavingsVaultPro
 
               <button
                 type="submit"
-                disabled={isSubmitting || !depositForm.amount || parseFloat(depositForm.amount) <= 0}
+                disabled={isSubmitting || !depositForm.sttAmount || parseFloat(depositForm.sttAmount) <= 0 || parseFloat(depositForm.sttAmount) > parseFloat(sttBalanceFormatted)}
                 className="w-full bg-blue-600 text-white py-3 px-4 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium text-lg"
               >
-                {isSubmitting ? 'Processing...' : 'Deposit'}
+                {isSubmitting ? 'Converting & Depositing...' : `Convert ${depositForm.sttAmount || '0'} STT & Deposit`}
               </button>
             </form>
           </div>
@@ -326,8 +576,8 @@ export default function SavingsVault({ defaultTab = 'deposit' }: SavingsVaultPro
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
               <h4 className="font-medium text-blue-800 mb-2">Token Conversion</h4>
               <p className="text-blue-600 text-sm">
-                Convert your STT to preferred stablecoins before depositing to maximize your savings strategy. 
-                All converted tokens can be deposited into the savings vault to earn yield.
+                Convert your STT to preferred stablecoins or manage your token portfolio. 
+                The deposit feature automatically converts STT to USDC, but you can use this tool for other conversions.
               </p>
             </div>
             
