@@ -10,7 +10,7 @@ import {
   CurrencyDollarIcon,
   CreditCardIcon,
   ArrowPathIcon,
-  TrendingUpIcon,
+  ArrowTrendingUpIcon,
   ArrowRightIcon,
   CheckCircleIcon
 } from '@heroicons/react/24/outline'
@@ -164,7 +164,7 @@ export default function DocsPage() {
                   </p>
                 </div>
                 <div className="w-32 h-32 bg-gradient-to-br from-blue-100 to-blue-200 rounded-2xl flex items-center justify-center">
-                  <TrendingUpIcon className="w-16 h-16 text-blue-600" />
+                  <ArrowTrendingUpIcon className="w-16 h-16 text-blue-600" />
                 </div>
               </div>
             </div>
@@ -196,7 +196,7 @@ export default function DocsPage() {
               {/* Smart Lending */}
               <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg border border-gray-100 dark:border-gray-700">
                 <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900 rounded-xl flex items-center justify-center mb-4">
-                  <TrendingUpIcon className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                  <ArrowTrendingUpIcon className="w-6 h-6 text-blue-600 dark:text-blue-400" />
                 </div>
                 <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">Smart Lending</h3>
                 <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">

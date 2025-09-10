@@ -21,7 +21,7 @@ export function Header() {
       <div className="container mx-auto px-6">
         <div className="flex items-center justify-between h-16">
           {/* Logo - responsive sizing */}
-          <Link href="/" className="flex items-center hover:opacity-80 transition-opacity duration-200">
+          <Link href="/" className="flex items-center hover:opacity-80 transition-opacity duration-200 min-h-[44px] touch-manipulation">
             {/* Show icon only on very small screens */}
             <div className="sm:hidden">
               <LogoIcon size="md" />
@@ -42,7 +42,7 @@ export function Header() {
               <Link
                 key={item.name}
                 href={item.href}
-                className="text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors duration-200"
+                className="text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors duration-200 min-h-[44px] flex items-center touch-manipulation"
               >
                 {item.name}
               </Link>
@@ -56,7 +56,7 @@ export function Header() {
 
           {/* Mobile Menu Button */}
           <button
-            className="md:hidden p-2 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
+            className="md:hidden p-3 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white min-h-[44px] min-w-[44px] flex items-center justify-center touch-manipulation"
             onClick={() => setIsMenuOpen(!isMenuOpen)}
           >
             {isMenuOpen ? (
@@ -80,7 +80,7 @@ export function Header() {
                 <Link
                   key={item.name}
                   href={item.href}
-                  className="text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors duration-200"
+                  className="text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors duration-200 min-h-[44px] flex items-center touch-manipulation py-2"
                   onClick={() => setIsMenuOpen(false)}
                 >
                   {item.name}

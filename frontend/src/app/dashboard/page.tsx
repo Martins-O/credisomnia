@@ -20,6 +20,10 @@ import { useAccount } from 'wagmi';
 import { useRouter } from 'next/navigation';
 import { useCrediSom } from '@/hooks/useCrediSom';
 import { formatError, getErrorSuggestions, isRecoverableError, getErrorColor, type FormattedError } from '@/lib/utils/errorHandling';
+import { AccessibleButton, ScreenReaderOnly } from '@/components/ui/AccessibleButton';
+import { HelpTooltip } from '@/components/ui/HelpTooltip';
+import { LoadingCard, LoadingButton } from '@/components/ui/LoadingSpinner';
+import { useTransactionFeedback, TransactionFeedback } from '@/components/ui/TransactionFeedback';
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -62,6 +66,16 @@ export default function DashboardPage() {
   const { isConnected } = useAccount();
   const router = useRouter();
   const [error, setError] = React.useState<FormattedError | null>(null);
+  const [showWelcome, setShowWelcome] = React.useState(false);
+  const { feedback, showPending, showSuccess, showError, clear } = useTransactionFeedback();
+
+  // Check if user needs onboarding
+  React.useEffect(() => {
+    const hasCompletedOnboarding = localStorage.getItem('credisomOnboardingCompleted')
+    if (isConnected && !hasCompletedOnboarding) {
+      setShowWelcome(true)
+    }
+  }, [isConnected])
   
   const { 
     creditScore, 
@@ -83,10 +97,13 @@ export default function DashboardPage() {
   const handleMintNFT = async () => {
     try {
       setError(null);
+      showPending('Minting your Credit NFT...');
       await mintCreditNFT(creditScore || 600n);
+      showSuccess('Credit NFT minted successfully!');
     } catch (err: any) {
       const formattedError = formatError(err);
       setError(formattedError);
+      showError('Failed to mint Credit NFT');
       console.error('Mint NFT error:', err);
     }
   };
@@ -143,19 +160,28 @@ export default function DashboardPage() {
           initial="hidden"
           animate="visible"
         >
-          {/* Header */}
-          <motion.div variants={itemVariants} className="mb-4 sm:mb-6">
-            <div className="flex flex-col space-y-3 sm:space-y-0 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white">
-                  Dashboard
-                </h1>
-                <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300 mt-1">
-                  Your DeFi credit overview
+          {/* Header with improved hierarchy */}
+          <motion.div variants={itemVariants} className="mb-6">
+            <div className="flex flex-col space-y-4 sm:space-y-0 sm:flex-row sm:items-start sm:justify-between">
+              <div className="flex-1">
+                <div className="flex items-center space-x-3">
+                  <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">
+                    Dashboard
+                    <ScreenReaderOnly>- CrediSom DeFi Credit Platform</ScreenReaderOnly>
+                  </h1>
+                  <HelpTooltip 
+                    title="Dashboard Overview" 
+                    content="Monitor your credit score, savings, and lending activity. Use quick actions to manage your DeFi credit profile."
+                  />
+                </div>
+                <p className="text-gray-600 dark:text-gray-300 mt-2 text-sm sm:text-base">
+                  Your DeFi credit overview and quick actions
                 </p>
               </div>
               <div className="flex-shrink-0">
-                <ConnectButton />
+                <LoadingCard isLoading={isLoading}>
+                  <ConnectButton />
+                </LoadingCard>
               </div>
             </div>
             {error && (
@@ -217,385 +243,333 @@ export default function DashboardPage() {
             )}
           </motion.div>
 
-          {/* Credit NFT Status */}
+          {/* Credit NFT Status - Enhanced */}
           {!hasCreditNFT && (
-            <motion.div variants={itemVariants} className="mb-4 sm:mb-6">
-              <div className="bg-gradient-to-r from-primary-500 to-secondary-500 rounded-xl sm:rounded-2xl p-4 sm:p-6 text-white">
-                <div className="flex flex-col space-y-3 sm:space-y-0 sm:flex-row sm:items-center sm:justify-between">
+            <motion.div variants={itemVariants} className="mb-6">
+              <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl p-6 text-white shadow-xl">
+                <div className="flex flex-col space-y-4 sm:space-y-0 sm:flex-row sm:items-center sm:justify-between">
                   <div className="flex-1">
-                    <h2 className="text-base sm:text-lg lg:text-xl font-bold mb-2">Get Your Credit NFT</h2>
+                    <div className="flex items-center space-x-2 mb-2">
+                      <Award className="w-5 h-5" />
+                      <h2 className="text-lg sm:text-xl font-bold">Get Your Credit NFT</h2>
+                      <HelpTooltip 
+                        title="Credit NFT" 
+                        content="Your soulbound NFT represents your credit history and evolves with your score. It's non-transferable and unique to you."
+                      />
+                    </div>
                     <p className="opacity-90 text-sm sm:text-base">
-                      Mint your soulbound Credit NFT to start building reputation
+                      Mint your soulbound Credit NFT to start building on-chain reputation
                     </p>
                   </div>
-                  <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
+                  <LoadingButton
+                    isLoading={isLoading}
                     onClick={handleMintNFT}
-                    disabled={isLoading}
-                    className="w-full sm:w-auto px-6 py-3 bg-white text-primary-600 font-semibold rounded-xl hover:bg-gray-100 transition-colors disabled:opacity-50 text-sm sm:text-base flex-shrink-0 min-h-[44px] flex items-center justify-center touch-manipulation"
+                    className="w-full sm:w-auto px-6 py-3 bg-white text-blue-600 font-semibold rounded-xl hover:bg-gray-100 transition-colors text-sm sm:text-base flex-shrink-0 min-h-[44px] touch-manipulation"
+                    ariaLabel="Mint your Credit NFT to start building credit history"
                   >
                     {isLoading ? 'Minting...' : 'Mint NFT'}
-                  </motion.button>
+                  </LoadingButton>
                 </div>
               </div>
             </motion.div>
           )}
 
-          {/* Stats Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6 mb-4 sm:mb-6 lg:mb-8">
-            {/* Credit Score */}
-            <motion.div variants={itemVariants}>
-              <div className="bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl p-3 sm:p-4 lg:p-6 shadow-lg border border-gray-100 dark:border-gray-700 h-full">
-                <div className="flex items-start space-x-2 sm:space-x-3 mb-3 sm:mb-4">
-                  <div className="w-8 h-8 sm:w-10 sm:h-10 bg-primary-100 dark:bg-primary-900 rounded-full flex items-center justify-center flex-shrink-0">
-                    <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-primary-600 dark:text-primary-400" />
+          {/* Key Metrics - Enhanced Visual Hierarchy */}
+          <motion.div variants={itemVariants} className="mb-8">
+            <div className="flex items-center space-x-3 mb-4">
+              <h2 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">
+                Key Metrics
+              </h2>
+              <HelpTooltip 
+                title="Credit Metrics" 
+                content="Your credit score and savings balance are the primary indicators of your DeFi credit health."
+              />
+            </div>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6">
+              {/* Credit Score - Primary Metric */}
+              <LoadingCard isLoading={isLoading}>
+                <div className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 rounded-2xl p-6 border border-blue-200 dark:border-blue-800 shadow-sm hover:shadow-md transition-shadow">
+                  <div className="flex items-start justify-between mb-6">
+                    <div className="flex-1">
+                      <div className="flex items-center space-x-2 mb-1">
+                        <h3 className="text-sm font-semibold text-blue-900 dark:text-blue-100">Credit Score</h3>
+                        <ScreenReaderOnly>Current credit score: {creditScoreNum || 'Not available'}</ScreenReaderOnly>
+                      </div>
+                      <p className="text-xs text-blue-700 dark:text-blue-300 font-medium">{tier}</p>
+                    </div>
+                    <div className="p-2 bg-blue-600 rounded-lg">
+                      <TrendingUp className="w-5 h-5 text-white" />
+                    </div>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-medium text-gray-900 dark:text-white text-xs sm:text-sm lg:text-base">Credit Score</h3>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{tier}</p>
+                  
+                  <div className="text-5xl font-bold text-blue-900 dark:text-blue-100 mb-3">
+                    {creditScoreNum || '---'}
+                  </div>
+                  
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center text-xs text-blue-700 dark:text-blue-300">
+                      <ArrowUpRight className="w-3 h-3 mr-1" />
+                      <span>+12 this month</span>
+                    </div>
+                    <div className="text-xs text-blue-600 dark:text-blue-400 font-medium">
+                      Excellent
+                    </div>
                   </div>
                 </div>
-                <div className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white mb-1 sm:mb-2">
-                  {creditScoreNum || '---'}
-                </div>
-                <div className="flex items-center text-xs">
-                  <ArrowUpRight className="w-3 h-3 text-green-500 mr-1 flex-shrink-0" />
-                  <span className="text-green-500">+12 this month</span>
-                </div>
-              </div>
-            </motion.div>
+              </LoadingCard>
 
-            {/* Savings Balance */}
-            <motion.div variants={itemVariants}>
-              <div className="bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl p-3 sm:p-4 lg:p-6 shadow-lg border border-gray-100 dark:border-gray-700 h-full">
-                <div className="flex items-start space-x-2 sm:space-x-3 mb-3 sm:mb-4">
-                  <div className="w-8 h-8 sm:w-10 sm:h-10 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center flex-shrink-0">
-                    <PiggyBank className="w-4 h-4 sm:w-5 sm:h-5 text-green-600 dark:text-green-400" />
+              {/* Savings Balance - Secondary Metric */}
+              <LoadingCard isLoading={isLoading}>
+                <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition-shadow">
+                  <div className="flex items-start justify-between mb-6">
+                    <div className="flex-1">
+                      <div className="flex items-center space-x-2 mb-1">
+                        <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Total Savings</h3>
+                        <ScreenReaderOnly>Current savings balance: {savingsBalanceFormatted} STT</ScreenReaderOnly>
+                      </div>
+                      <p className="text-xs text-green-600 dark:text-green-400 font-medium">Earning {apy} APY</p>
+                    </div>
+                    <div className="p-2 bg-green-600 rounded-lg">
+                      <PiggyBank className="w-5 h-5 text-white" />
+                    </div>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-medium text-gray-900 dark:text-white text-xs sm:text-sm lg:text-base">Savings</h3>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 truncate">STT Balance</p>
+                  
+                  <div className="text-4xl font-bold text-gray-900 dark:text-white mb-3">
+                    {savingsBalanceFormatted}
+                  </div>
+                  
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs text-gray-500 dark:text-gray-400">STT</p>
+                    <div className="text-xs text-green-600 dark:text-green-400 font-medium">
+                      Active
+                    </div>
                   </div>
                 </div>
-                <div className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white mb-1 sm:mb-2">
-                  {savingsBalanceFormatted}
-                </div>
-                <div className="flex items-center text-xs">
-                  <ArrowUpRight className="w-3 h-3 text-green-500 mr-1 flex-shrink-0" />
-                  <span className="text-green-500">+5.2% APY</span>
-                </div>
-              </div>
-            </motion.div>
+              </LoadingCard>
+            </div>
+          </motion.div>
 
-            {/* Repayment Streak */}
-            <motion.div variants={itemVariants}>
-              <div className="bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl p-3 sm:p-4 lg:p-6 shadow-lg border border-gray-100 dark:border-gray-700 h-full">
-                <div className="flex items-start space-x-2 sm:space-x-3 mb-3 sm:mb-4">
-                  <div className="w-8 h-8 sm:w-10 sm:h-10 bg-yellow-100 dark:bg-yellow-900 rounded-full flex items-center justify-center flex-shrink-0">
-                    <Zap className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-600 dark:text-yellow-400" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-medium text-gray-900 dark:text-white text-xs sm:text-sm lg:text-base">Streak</h3>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 truncate">On-time payments</p>
-                  </div>
-                </div>
-                <div className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white mb-1 sm:mb-2">
-                  {creditProfile ? Number(creditProfile.repaymentStreak) : '0'}
-                </div>
-                <div className="flex items-center text-xs">
-                  <Activity className="w-3 h-3 text-blue-500 mr-1 flex-shrink-0" />
-                  <span className="text-blue-500">payments</span>
-                </div>
-              </div>
-            </motion.div>
-
-            {/* Total Repayments */}
-            <motion.div variants={itemVariants}>
-              <div className="bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl p-3 sm:p-4 lg:p-6 shadow-lg border border-gray-100 dark:border-gray-700 h-full">
-                <div className="flex items-start space-x-2 sm:space-x-3 mb-3 sm:mb-4">
-                  <div className="w-8 h-8 sm:w-10 sm:h-10 bg-purple-100 dark:bg-purple-900 rounded-full flex items-center justify-center flex-shrink-0">
-                    <DollarSign className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600 dark:text-purple-400" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-medium text-gray-900 dark:text-white text-xs sm:text-sm lg:text-base">Repayments</h3>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 truncate">Total amount</p>
-                  </div>
-                </div>
-                <div className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white mb-1 sm:mb-2">
-                  {creditProfile ? formatBalance(creditProfile.totalRepayments) : '0'}
-                </div>
-                <div className="flex items-center text-xs">
-                  <ArrowUpRight className="w-3 h-3 text-purple-500 mr-1 flex-shrink-0" />
-                  <span className="text-purple-500">STT repaid</span>
-                </div>
-              </div>
-            </motion.div>
-          </div>
-
-          {/* Quick Actions */}
-          <motion.div variants={itemVariants} className="mb-4 sm:mb-6 lg:mb-8">
-            <h2 className="text-base sm:text-lg lg:text-xl font-bold text-gray-900 dark:text-white mb-3 sm:mb-4">
-              Quick Actions
-            </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
+          {/* Essential Actions - Improved Organization */}
+          <motion.div variants={itemVariants} className="mb-8">
+            <div className="flex items-center space-x-3 mb-4">
+              <h2 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">
+                Quick Actions
+              </h2>
+              <HelpTooltip 
+                title="Quick Actions" 
+                content="Start earning, borrow funds, or manage your Credit NFT with these essential actions."
+              />
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <motion.button
                 onClick={() => handleNavigation('/dashboard/savings')}
                 whileHover={{ scale: 1.02, y: -2 }}
                 whileTap={{ scale: 0.98 }}
-                className="bg-white dark:bg-gray-800 rounded-xl p-4 sm:p-6 shadow-lg border border-gray-100 dark:border-gray-700 text-left hover:shadow-xl transition-all duration-300 h-full min-h-[44px] touch-manipulation"
+                className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 rounded-xl p-4 sm:p-6 border border-blue-200 dark:border-blue-800 text-left hover:shadow-lg transition-all duration-300 min-h-[44px] touch-manipulation"
               >
-                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-primary-100 dark:bg-primary-900 rounded-xl flex items-center justify-center mb-3 sm:mb-4">
-                  <PiggyBank className="w-5 h-5 sm:w-6 sm:h-6 text-primary-600 dark:text-primary-400" />
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center">
+                    <PiggyBank className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-blue-900 dark:text-blue-100 text-sm sm:text-base">
+                      Save & Earn
+                    </h3>
+                    <p className="text-xs text-blue-700 dark:text-blue-300">
+                      {apy} APY
+                    </p>
+                  </div>
                 </div>
-                <h3 className="font-semibold text-gray-900 dark:text-white mb-2 text-sm sm:text-base">
-                  Start Saving
-                </h3>
-                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300 line-clamp-2">
-                  Earn {apy} APY
-                </p>
-              </motion.button>
-
-              <motion.button
-                onClick={() => handleNavigation('/dashboard/savings?tab=convert')}
-                whileHover={{ scale: 1.02, y: -2 }}
-                whileTap={{ scale: 0.98 }}
-                className="bg-white dark:bg-gray-800 rounded-xl p-4 sm:p-6 shadow-lg border border-gray-100 dark:border-gray-700 text-left hover:shadow-xl transition-all duration-300 h-full min-h-[44px] touch-manipulation"
-              >
-                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-orange-100 dark:bg-orange-900 rounded-xl flex items-center justify-center mb-3 sm:mb-4">
-                  <ArrowUpRight className="w-5 h-5 sm:w-6 sm:h-6 text-orange-600 dark:text-orange-400" />
-                </div>
-                <h3 className="font-semibold text-gray-900 dark:text-white mb-2 text-sm sm:text-base">
-                  Convert STT
-                </h3>
-                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300 line-clamp-2">
-                  Convert to stablecoins
-                </p>
               </motion.button>
 
               <motion.button
                 onClick={() => handleNavigation('/dashboard/loans')}
                 whileHover={{ scale: 1.02, y: -2 }}
                 whileTap={{ scale: 0.98 }}
-                className="bg-white dark:bg-gray-800 rounded-xl p-4 sm:p-6 shadow-lg border border-gray-100 dark:border-gray-700 text-left hover:shadow-xl transition-all duration-300 h-full min-h-[44px] touch-manipulation"
+                className="bg-white dark:bg-gray-800 rounded-xl p-4 sm:p-6 border border-gray-200 dark:border-gray-700 text-left hover:shadow-lg transition-all duration-300 min-h-[44px] touch-manipulation"
               >
-                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-green-100 dark:bg-green-900 rounded-xl flex items-center justify-center mb-3 sm:mb-4">
-                  <DollarSign className="w-5 h-5 sm:w-6 sm:h-6 text-green-600 dark:text-green-400" />
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 bg-green-600 rounded-xl flex items-center justify-center">
+                    <DollarSign className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-gray-900 dark:text-white text-sm sm:text-base">
+                      Borrow
+                    </h3>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      Credit-based rates
+                    </p>
+                  </div>
                 </div>
-                <h3 className="font-semibold text-gray-900 dark:text-white mb-2 text-sm sm:text-base">
-                  Get a Loan
-                </h3>
-                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300 line-clamp-2">
-                  Borrow based on credit score
-                </p>
               </motion.button>
 
               <motion.button
                 onClick={() => handleNavigation('/dashboard/nft')}
                 whileHover={{ scale: 1.02, y: -2 }}
                 whileTap={{ scale: 0.98 }}
-                className="bg-white dark:bg-gray-800 rounded-xl p-4 sm:p-6 shadow-lg border border-gray-100 dark:border-gray-700 text-left hover:shadow-xl transition-all duration-300 h-full min-h-[44px] touch-manipulation"
+                className="bg-white dark:bg-gray-800 rounded-xl p-4 sm:p-6 border border-gray-200 dark:border-gray-700 text-left hover:shadow-lg transition-all duration-300 min-h-[44px] touch-manipulation"
               >
-                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-yellow-100 dark:bg-yellow-900 rounded-xl flex items-center justify-center mb-3 sm:mb-4">
-                  <Award className="w-5 h-5 sm:w-6 sm:h-6 text-yellow-600 dark:text-yellow-400" />
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 bg-yellow-600 rounded-xl flex items-center justify-center">
+                    <Award className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-gray-900 dark:text-white text-sm sm:text-base">
+                      Credit NFT
+                    </h3>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      View your profile
+                    </p>
+                  </div>
                 </div>
-                <h3 className="font-semibold text-gray-900 dark:text-white mb-2 text-sm sm:text-base">
-                  View NFT
-                </h3>
-                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300 line-clamp-2">
-                  View your Credit NFT
-                </p>
-              </motion.button>
-
-              <motion.button
-                onClick={() => handleNavigation('/dashboard/trading')}
-                whileHover={{ scale: 1.02, y: -2 }}
-                whileTap={{ scale: 0.98 }}
-                className="bg-white dark:bg-gray-800 rounded-xl p-4 sm:p-6 shadow-lg border border-gray-100 dark:border-gray-700 text-left hover:shadow-xl transition-all duration-300 h-full min-h-[44px] touch-manipulation"
-              >
-                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-purple-100 dark:bg-purple-900 rounded-xl flex items-center justify-center mb-3 sm:mb-4">
-                  <TrendingUp className="w-5 h-5 sm:w-6 sm:h-6 text-purple-600 dark:text-purple-400" />
-                </div>
-                <h3 className="font-semibold text-gray-900 dark:text-white mb-2 text-sm sm:text-base">
-                  Trading
-                </h3>
-                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300 line-clamp-2">
-                  Trading (coming soon)
-                </p>
               </motion.button>
             </div>
           </motion.div>
 
-          {/* Dashboard Grid Layout */}
-          <div className="grid lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-6 mb-4 sm:mb-6 lg:mb-8">
-            {/* Main Dashboard Content */}
-            <div className="lg:col-span-2 space-y-3 sm:space-y-4 lg:space-y-6">
-              {/* Portfolio Overview */}
-              <motion.div variants={itemVariants}>
-                <div className="bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl p-3 sm:p-4 lg:p-6 shadow-lg border border-gray-100 dark:border-gray-700">
-                  <h2 className="text-base sm:text-lg lg:text-xl font-bold text-gray-900 dark:text-white mb-3 sm:mb-4 lg:mb-6">
-                    Portfolio
-                  </h2>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3 lg:gap-4">
-                    <div className="text-center p-3 sm:p-4 bg-gradient-to-br from-primary-50 to-primary-100 dark:from-primary-900/20 dark:to-primary-800/20 rounded-lg sm:rounded-xl">
-                      <div className="text-lg sm:text-xl lg:text-2xl font-bold text-primary-600 dark:text-primary-400 truncate">
-                        {savingsBalanceFormatted}
-                      </div>
-                      <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
-                        Savings (STT)
-                      </div>
+          {/* Simplified Dashboard Layout */}
+          <div className="space-y-4 sm:space-y-6">
+            {/* Quick Status Overview */}
+            <motion.div variants={itemVariants}>
+              <div className="bg-white dark:bg-gray-800 rounded-xl p-4 sm:p-6 border border-gray-200 dark:border-gray-700">
+                <h2 className="text-base sm:text-lg font-bold text-gray-900 dark:text-white mb-4">
+                  Account Status
+                </h2>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-4">
+                    <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                    <span className="text-sm text-gray-600 dark:text-gray-300">
+                      All systems operational
+                    </span>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-lg font-bold text-gray-900 dark:text-white">
+                      {totalLoans} Active Loans
                     </div>
-                    <div className="text-center p-3 sm:p-4 bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 rounded-lg sm:rounded-xl">
-                      <div className="text-lg sm:text-xl lg:text-2xl font-bold text-green-600 dark:text-green-400">
-                        {totalLoans}
-                      </div>
-                      <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
-                        Active Loans
-                      </div>
-                    </div>
-                    <div className="text-center p-3 sm:p-4 bg-gradient-to-br from-yellow-50 to-yellow-100 dark:from-yellow-900/20 dark:to-yellow-800/20 rounded-lg sm:rounded-xl">
-                      <div className="text-lg sm:text-xl lg:text-2xl font-bold text-yellow-600 dark:text-yellow-400">
-                        {healthFactor}
-                      </div>
-                      <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
-                        Health Factor
-                      </div>
+                    <div className="text-xs text-gray-500">
+                      Health: {healthFactor}
                     </div>
                   </div>
                 </div>
-              </motion.div>
+              </div>
+            </motion.div>
 
-              {/* Credit History Chart */}
-              <motion.div variants={itemVariants}>
-                <div className="bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl p-3 sm:p-4 lg:p-6 shadow-lg border border-gray-100 dark:border-gray-700">
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-3 sm:mb-4 lg:mb-6 gap-2">
-                    <h2 className="text-base sm:text-lg lg:text-xl font-bold text-gray-900 dark:text-white">
-                      Credit Trend
+            {/* Recent Activity - Enhanced Visual Hierarchy */}
+            <motion.div variants={itemVariants}>
+              <LoadingCard isLoading={isLoading}>
+                <div className="bg-white dark:bg-gray-800 rounded-xl p-4 sm:p-6 border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition-shadow">
+                  <div className="flex items-center space-x-3 mb-4">
+                    <h2 className="text-base sm:text-lg font-bold text-gray-900 dark:text-white">
+                      Recent Activity
                     </h2>
-                    <div className="flex items-center space-x-2">
-                      <span className="text-xs text-gray-500">6 months</span>
+                    <HelpTooltip 
+                      title="Activity Feed" 
+                      content="Your latest transactions and credit score changes are shown here to help track your DeFi credit progress."
+                    />
+                  </div>
+                  
+                  <div className="space-y-4" role="list" aria-label="Recent account activity">
+                    <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg" role="listitem">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-10 h-10 bg-green-100 dark:bg-green-900 rounded-lg flex items-center justify-center">
+                          <ArrowUpRight className="w-5 h-5 text-green-600 dark:text-green-400" aria-hidden="true" />
+                        </div>
+                        <div>
+                          <div className="text-sm font-semibold text-gray-900 dark:text-white">
+                            Savings Deposit
+                          </div>
+                          <div className="text-xs text-gray-500 dark:text-gray-400">
+                            +500 STT • 2 days ago
+                          </div>
+                        </div>
+                      </div>
+                      <div className="text-lg font-bold text-green-600 dark:text-green-400">
+                        +500
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg" role="listitem">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900 rounded-lg flex items-center justify-center">
+                          <TrendingUp className="w-5 h-5 text-blue-600 dark:text-blue-400" aria-hidden="true" />
+                        </div>
+                        <div>
+                          <div className="text-sm font-semibold text-gray-900 dark:text-white">
+                            Credit Score Increase
+                          </div>
+                          <div className="text-xs text-gray-500 dark:text-gray-400">
+                            Improved by 30 points • 1 week ago
+                          </div>
+                        </div>
+                      </div>
+                      <div className="text-lg font-bold text-blue-600 dark:text-blue-400">
+                        +30
+                      </div>
+                    </div>
+                    
+                    <div className="pt-3 border-t border-gray-200 dark:border-gray-600">
+                      <AccessibleButton
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleNavigation('/dashboard/history')}
+                        className="w-full justify-center text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+                        ariaLabel="View complete transaction history"
+                      >
+                        View All Activity
+                        <ArrowUpRight className="w-4 h-4 ml-1" aria-hidden="true" />
+                      </AccessibleButton>
+                    </div>
+                  </div>
+                </div>
+              </LoadingCard>
+            </motion.div>
+
+            {/* Payment Alert - Enhanced Visual Hierarchy */}
+            {nextPaymentDue && (
+              <motion.div variants={itemVariants}>
+                <div className="bg-gradient-to-r from-orange-500 to-red-500 rounded-xl p-4 sm:p-6 text-white shadow-lg border-2 border-orange-400">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
+                        <Zap className="w-5 h-5 text-white" aria-hidden="true" />
+                      </div>
+                      <div>
+                        <h3 className="font-bold text-lg">Payment Due Soon</h3>
+                        <p className="text-orange-100 text-sm">Don't miss your payment deadline</p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-2xl font-bold">{nextPaymentDue}</div>
+                      <div className="text-sm text-orange-100 font-medium">STT • Due in 7 days</div>
                     </div>
                   </div>
                   
-                  {/* Simplified Credit Score Chart */}
-                  <div className="h-20 sm:h-24 lg:h-32 relative">
-                    <div className="absolute inset-0 flex items-end justify-between px-1 sm:px-2 lg:px-4">
-                      {[580, 620, 640, 680, 720, 750].map((score, index) => (
-                        <div key={index} className="flex flex-col items-center">
-                          <div 
-                            className="w-2 sm:w-3 lg:w-6 bg-gradient-to-t from-primary-500 to-primary-400 rounded-t"
-                            style={{ height: `${Math.min((score - 500) / 4, 40)}px` }}
-                          />
-                          <div className="text-xs text-gray-500 mt-1 hidden sm:block">
-                            {['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'][index]}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
+                  <div className="space-y-3">
+                    <AccessibleButton
+                      onClick={() => handleNavigation('/dashboard/loans?tab=repay')}
+                      className="w-full bg-white text-orange-600 font-semibold py-3 px-4 rounded-lg hover:bg-orange-50 active:bg-orange-100 transition-colors text-sm shadow-sm"
+                      ariaLabel={`Pay loan amount of ${nextPaymentDue} STT now to avoid late fees`}
+                      motionProps={{
+                        whileHover: { scale: 1.02, y: -1 },
+                        whileTap: { scale: 0.98 }
+                      }}
+                    >
+                      Pay Now
+                      <ArrowUpRight className="w-4 h-4 ml-2 inline" aria-hidden="true" />
+                    </AccessibleButton>
+                    
+                    <AccessibleButton
+                      variant="ghost"
+                      onClick={() => handleNavigation('/dashboard/loans')}
+                      className="w-full text-white/90 hover:text-white hover:bg-white/10 py-2 text-xs"
+                      ariaLabel="View detailed loan information and payment options"
+                    >
+                      View Loan Details
+                    </AccessibleButton>
                   </div>
                 </div>
               </motion.div>
-            </div>
-
-            {/* Sidebar */}
-            <div className="space-y-3 sm:space-y-4 lg:space-y-6">
-              {/* Recent Activity */}
-              <motion.div variants={itemVariants}>
-                <div className="bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl p-3 sm:p-4 lg:p-6 shadow-lg border border-gray-100 dark:border-gray-700">
-                  <h2 className="text-sm sm:text-base lg:text-lg font-bold text-gray-900 dark:text-white mb-3 sm:mb-4">
-                    Activity
-                  </h2>
-                  <div className="space-y-2 sm:space-y-3">
-                    <div className="flex items-start space-x-2 sm:space-x-3">
-                      <div className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center flex-shrink-0">
-                        <ArrowUpRight className="w-3 h-3 sm:w-4 sm:h-4 text-green-600 dark:text-green-400" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="text-xs sm:text-sm font-medium text-gray-900 dark:text-white">
-                          Deposit
-                        </div>
-                        <div className="text-xs text-gray-500">
-                          +500 STT • 2 days ago
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex items-start space-x-2 sm:space-x-3">
-                      <div className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center flex-shrink-0">
-                        <Activity className="w-3 h-3 sm:w-4 sm:h-4 text-blue-600 dark:text-blue-400" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="text-xs sm:text-sm font-medium text-gray-900 dark:text-white">
-                          Credit Score Updated
-                        </div>
-                        <div className="text-xs text-gray-500">
-                          +30 points • 1 week ago
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex items-start space-x-2 sm:space-x-3">
-                      <div className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 bg-yellow-100 dark:bg-yellow-900 rounded-full flex items-center justify-center flex-shrink-0">
-                        <Award className="w-3 h-3 sm:w-4 sm:h-4 text-yellow-600 dark:text-yellow-400" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="text-xs sm:text-sm font-medium text-gray-900 dark:text-white">
-                          NFT Minted
-                        </div>
-                        <div className="text-xs text-gray-500">
-                          Credit NFT #1 • 2 weeks ago
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </motion.div>
-
-              {/* Next Payment */}
-              <motion.div variants={itemVariants}>
-                <div className="bg-gradient-to-r from-orange-500 to-red-500 rounded-xl sm:rounded-2xl p-3 sm:p-4 lg:p-6 text-white">
-                  <div className="flex items-center space-x-2 mb-3">
-                    <Zap className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 flex-shrink-0" />
-                    <h3 className="text-sm sm:text-base lg:text-lg font-bold">Payment Due</h3>
-                  </div>
-                  <div className="text-lg sm:text-xl lg:text-2xl font-bold mb-1 truncate">
-                    {nextPaymentDue}
-                  </div>
-                  <div className="text-orange-100 text-xs sm:text-sm">
-                    Due in 7 days
-                  </div>
-                  <motion.button
-                    onClick={() => handleNavigation('/dashboard/loans?tab=repay')}
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    className="mt-3 w-full bg-white text-orange-600 font-semibold py-3 px-4 rounded-lg hover:bg-orange-50 transition-colors text-sm sm:text-base min-h-[44px] touch-manipulation"
-                  >
-                    Pay Now
-                  </motion.button>
-                </div>
-              </motion.div>
-
-              {/* Market Stats */}
-              <motion.div variants={itemVariants}>
-                <div className="bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl p-3 sm:p-4 lg:p-6 shadow-lg border border-gray-100 dark:border-gray-700">
-                  <h3 className="text-sm sm:text-base lg:text-lg font-bold text-gray-900 dark:text-white mb-3">
-                    Market
-                  </h3>
-                  <div className="space-y-2">
-                    <div className="flex justify-between items-center">
-                      <span className="text-xs text-gray-600 dark:text-gray-400">Avg APY</span>
-                      <span className="text-xs font-semibold text-green-600">5.2%</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-xs text-gray-600 dark:text-gray-400">TVL</span>
-                      <span className="text-xs font-semibold text-gray-900 dark:text-white">$2.4M</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-xs text-gray-600 dark:text-gray-400">Active Users</span>
-                      <span className="text-xs font-semibold text-primary-600">1,247</span>
-                    </div>
-                  </div>
-                </div>
-              </motion.div>
-            </div>
+            )}
           </div>
         </motion.div>
       </div>

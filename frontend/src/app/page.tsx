@@ -15,11 +15,10 @@ import {
   UserGroupIcon,
   CurrencyDollarIcon,
   CheckCircleIcon,
-  PlayCircleIcon,
-  Bars3Icon,
-  XMarkIcon
+  PlayCircleIcon
 } from '@heroicons/react/24/outline'
-import { Logo } from '@/components/ui/Logo'
+import { UnifiedNavigation } from '@/components/navigation/UnifiedNavigation'
+import { UnifiedFooter } from '@/components/navigation/UnifiedFooter'
 
 const features = [
   {
@@ -103,7 +102,6 @@ const stats = [
 export default function HomePage() {
   const { isConnected } = useAccount()
   const router = useRouter()
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   // Redirect to dashboard when wallet is connected
   useEffect(() => {
@@ -114,109 +112,8 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Navigation */}
-      <nav className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            {/* Logo */}
-            <div className="flex items-center">
-              <Logo variant="full" size="md" />
-            </div>
-
-            {/* Desktop Navigation Links */}
-            <div className="hidden md:flex items-center space-x-8">
-              <Link href="/" className="text-sm font-medium text-blue-600">
-                Home
-              </Link>
-              <Link href="/about" className="text-sm font-medium text-gray-700 hover:text-blue-600 transition-colors">
-                About
-              </Link>
-              <Link href="/how-it-works" className="text-sm font-medium text-gray-700 hover:text-blue-600 transition-colors">
-                How It Works
-              </Link>
-              <Link href="/docs" className="text-sm font-medium text-gray-700 hover:text-blue-600 transition-colors">
-                Documentation
-              </Link>
-            </div>
-
-            {/* Mobile menu button */}
-            <div className="md:hidden">
-              <button
-                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                className="p-2 rounded-md text-gray-700 hover:text-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                aria-label="Toggle menu"
-              >
-                {mobileMenuOpen ? (
-                  <XMarkIcon className="h-6 w-6" />
-                ) : (
-                  <Bars3Icon className="h-6 w-6" />
-                )}
-              </button>
-            </div>
-
-            {/* Desktop Connect Button */}
-            <div className="hidden md:flex items-center space-x-4">
-              <ConnectButton />
-              {isConnected && (
-                <Link
-                  href="/dashboard"
-                  className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
-                >
-                  Dashboard
-                </Link>
-              )}
-            </div>
-          </div>
-
-          {/* Mobile Navigation Menu */}
-          {mobileMenuOpen && (
-            <div className="md:hidden border-t border-gray-200 py-4">
-              <div className="flex flex-col space-y-4">
-                <Link 
-                  href="/" 
-                  className="text-base font-medium text-blue-600 px-3 py-2"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  Home
-                </Link>
-                <Link 
-                  href="/about" 
-                  className="text-base font-medium text-gray-700 hover:text-blue-600 transition-colors px-3 py-2"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  About
-                </Link>
-                <Link 
-                  href="/how-it-works" 
-                  className="text-base font-medium text-gray-700 hover:text-blue-600 transition-colors px-3 py-2"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  How It Works
-                </Link>
-                <Link 
-                  href="/docs" 
-                  className="text-base font-medium text-gray-700 hover:text-blue-600 transition-colors px-3 py-2"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  Documentation
-                </Link>
-                <div className="pt-4 border-t border-gray-200">
-                  <ConnectButton />
-                  {isConnected && (
-                    <Link
-                      href="/dashboard"
-                      className="mt-2 block w-full bg-blue-600 text-white px-4 py-3 rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium text-center"
-                      onClick={() => setMobileMenuOpen(false)}
-                    >
-                      Dashboard
-                    </Link>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      </nav>
+      {/* Unified Navigation */}
+      <UnifiedNavigation />
 
       {/* Main Content */}
       <div className="space-y-12 sm:space-y-16">
@@ -332,52 +229,8 @@ export default function HomePage() {
         </section>
       </div>
 
-      {/* Footer */}
-      <footer className="bg-gray-900 text-white py-8 sm:py-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
-            <div className="sm:col-span-2">
-              <Logo variant="full" size="md" theme="dark" />
-              <p className="text-gray-400 mt-4 max-w-md text-sm sm:text-base">
-                Building the future of decentralized credit scoring and 
-                reputation-based lending on the blockchain.
-              </p>
-            </div>
-            <div>
-              <h3 className="font-semibold mb-4 text-sm sm:text-base">Platform</h3>
-              <ul className="space-y-2 text-gray-400 text-sm">
-                <li><Link href="/" className="hover:text-white transition-colors">Home</Link></li>
-                <li><Link href="/about" className="hover:text-white transition-colors">About</Link></li>
-                <li><Link href="/how-it-works" className="hover:text-white transition-colors">How It Works</Link></li>
-                <li><Link href="/docs" className="hover:text-white transition-colors">Documentation</Link></li>
-                {isConnected && (
-                  <li><Link href="/dashboard" className="hover:text-white transition-colors">Dashboard</Link></li>
-                )}
-              </ul>
-            </div>
-            <div>
-              <h3 className="font-semibold mb-4 text-sm sm:text-base">Network</h3>
-              <ul className="space-y-2 text-gray-400 text-sm">
-                <li>Somnia Testnet</li>
-                <li>Chain ID: 50312</li>
-                <li>
-                  <a 
-                    href="https://explorer-testnet.somnia.network" 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="hover:text-white transition-colors"
-                  >
-                    Block Explorer
-                  </a>
-                </li>
-              </ul>
-            </div>
-          </div>
-          <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
-            <p className="text-sm">&copy; 2024 CrediSom. All rights reserved.</p>
-          </div>
-        </div>
-      </footer>
+      {/* Unified Footer */}
+      <UnifiedFooter />
     </div>
   )
 }
