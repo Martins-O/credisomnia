@@ -9,9 +9,9 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: 'Credisomnia - DeFi Credit Scoring & Lending',
+  title: 'CrediSom - DeFi Credit Scoring & Lending',
   description: 'Revolutionary DeFi credit scoring and lending platform with soulbound NFTs',
-  metadataBase: new URL('https://credisomnia.com'),
+  metadataBase: new URL('https://credisom.com'),
   icons: {
     icon: [
       { url: '/favicon.svg', type: 'image/svg+xml' },
@@ -37,18 +37,18 @@ export const metadata: Metadata = {
   },
   openGraph: {
     type: 'website',
-    url: 'https://credisomnia.com/',
-    title: 'Credisomnia - DeFi Credit Scoring & Lending',
+    url: 'https://credisom.com/',
+    title: 'CrediSom - DeFi Credit Scoring & Lending',
     description: 'Revolutionary DeFi credit scoring and lending platform with soulbound NFTs',
     images: ['/og-image.svg'],
-    siteName: 'Credisomnia',
+    siteName: 'CrediSom',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Credisomnia - DeFi Credit Scoring & Lending',
+    title: 'CrediSom - DeFi Credit Scoring & Lending',
     description: 'Revolutionary DeFi credit scoring and lending platform with soulbound NFTs',
     images: ['/og-image.svg'],
-    creator: '@credisomnia',
+    creator: '@credisom',
   },
   other: {
     'font-display': 'swap',

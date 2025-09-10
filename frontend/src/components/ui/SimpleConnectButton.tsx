@@ -29,7 +29,7 @@ export function SimpleConnectButton() {
         </div>
         <button
           onClick={() => disconnect()}
-          className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white text-sm font-medium rounded-lg transition-colors"
+          className="px-4 py-3 bg-red-500 hover:bg-red-600 text-white text-sm font-medium rounded-lg transition-colors min-h-[44px] touch-manipulation flex items-center justify-center"
         >
           Disconnect
         </button>
@@ -40,7 +40,7 @@ export function SimpleConnectButton() {
   return (
     <button
       onClick={connectWallet}
-      className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors"
+      className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors min-h-[44px] touch-manipulation flex items-center justify-center"
     >
       Connect Wallet
     </button>

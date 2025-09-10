@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useAccount, useBalance, useChainId, usePublicClient, useWatchBlockNumber } from 'wagmi'
 import { formatUnits, parseUnits } from 'viem'
-import { useSavingsVault, formatTokenAmount, parseTokenAmount } from '@/lib/hooks/useContracts'
+import { useSavingsVault, parseTokenAmount } from '@/lib/hooks/useContracts'
 import { useDefiStore, useNotificationStore } from '@/lib/store/defi-store'
 import { usePriceOracle } from '@/lib/hooks/usePriceOracle'
 import { useTokenConversion } from '@/lib/hooks/useTokenConversion'
@@ -60,6 +60,10 @@ export default function SavingsVault({ defaultTab = 'deposit' }: SavingsVaultPro
   const [customBalanceLoading, setCustomBalanceLoading] = useState(false)
   const [lastFetchedBlock, setLastFetchedBlock] = useState<bigint | null>(null)
   const [rpcStatus, setRpcStatus] = useState<'connected' | 'error' | 'unknown'>('unknown')
+  
+  // Demo state for simulated balances
+  const [simulatedSavingsBalance, setSimulatedSavingsBalance] = useState<bigint>(0n)
+  const [simulatedWalletDeduction, setSimulatedWalletDeduction] = useState<bigint>(0n)
 
   // Watch for new blocks to trigger balance updates (with reliable Ankr RPC)
   useWatchBlockNumber({
@@ -207,8 +211,9 @@ export default function SavingsVault({ defaultTab = 'deposit' }: SavingsVaultPro
     return fetchBalanceWithFallbacks()
   }
 
-  // Use custom balance as fallback if wagmi balance fails
-  const effectiveBalance = sttBalance?.value || customBalance
+  // Use custom balance as fallback if wagmi balance fails, minus simulated deductions
+  const rawBalance = sttBalance?.value || customBalance
+  const effectiveBalance = rawBalance ? rawBalance - simulatedWalletDeduction : null
   const effectiveBalanceLoading = balanceLoading || customBalanceLoading
 
   // Format STT balance (no loading states - update silently)
@@ -268,17 +273,25 @@ export default function SavingsVault({ defaultTab = 'deposit' }: SavingsVaultPro
     })
   }, [address, chainId, isCorrectChain, lastFetchedBlock, sttBalance, customBalance, effectiveBalance, balanceLoading, customBalanceLoading, effectiveBalanceLoading, sttBalanceFormatted])
 
-  // Update store when account info changes
+  // Update store when account info changes, including simulated deposits
   useEffect(() => {
     if (accountInfo && Array.isArray(accountInfo) && accountInfo.length >= 4) {
       setSavingsAccount({
-        totalDeposited: accountInfo[0] as bigint,
+        totalDeposited: (accountInfo[0] as bigint) + simulatedSavingsBalance,
         rewardsEarned: accountInfo[1] as bigint,
         lastDepositTime: accountInfo[2] as bigint,
-        isActive: accountInfo[3] as boolean,
+        isActive: accountInfo[3] as boolean || simulatedSavingsBalance > 0n,
+      })
+    } else if (simulatedSavingsBalance > 0n) {
+      // If no account info but we have simulated deposits, create a mock account
+      setSavingsAccount({
+        totalDeposited: simulatedSavingsBalance,
+        rewardsEarned: 0n,
+        lastDepositTime: BigInt(Math.floor(Date.now() / 1000)),
+        isActive: true,
       })
     }
-  }, [accountInfo, setSavingsAccount])
+  }, [accountInfo, setSavingsAccount, simulatedSavingsBalance])
 
   // Calculate APY (annual percentage yield)
   const calculateAPY = () => {
@@ -287,7 +300,7 @@ export default function SavingsVault({ defaultTab = 'deposit' }: SavingsVaultPro
     return 5.0
   }
 
-  // Handle deposit form submission - Direct STT deposit
+  // Handle deposit form submission - Demo STT deposit
   const handleDeposit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!address || isSubmitting) return
@@ -318,19 +331,22 @@ export default function SavingsVault({ defaultTab = 'deposit' }: SavingsVaultPro
     setLoading(true)
 
     try {
-      // Direct STT deposit to savings vault
+      // Demo STT deposit simulation
       addNotification({
         type: 'info',
         title: 'Depositing STT',
         description: `Depositing ${sttAmount} STT to savings vault...`,
       })
 
-      // Convert STT amount to Wei for contract interaction
+      // Convert STT amount to Wei for simulation
       const sttAmountWei = parseUnits(sttAmount, 18) // STT has 18 decimals
       
-      // For demo purposes, simulate the deposit transaction
-      // In production, this would call the actual savings vault contract
-      await new Promise(resolve => setTimeout(resolve, 2000)) // Simulate transaction time
+      // Simulate transaction time
+      await new Promise(resolve => setTimeout(resolve, 2000))
+      
+      // Update simulated balances
+      setSimulatedSavingsBalance(prev => prev + sttAmountWei)
+      setSimulatedWalletDeduction(prev => prev + sttAmountWei)
       
       const mockTxHash = `0x${Math.random().toString(16).substring(2)}${Math.random().toString(16).substring(2)}`
       
@@ -352,7 +368,7 @@ export default function SavingsVault({ defaultTab = 'deposit' }: SavingsVaultPro
       setTimeout(() => {
         refetchAccount()
         refetchBalance()
-      }, 2000)
+      }, 1000)
 
     } catch (error: any) {
       addNotification({
@@ -366,7 +382,7 @@ export default function SavingsVault({ defaultTab = 'deposit' }: SavingsVaultPro
     }
   }
 
-  // Handle withdraw form submission - Direct STT withdrawal
+  // Handle withdraw form submission - Demo STT withdrawal
   const handleWithdraw = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!address || isSubmitting) return
@@ -397,8 +413,12 @@ export default function SavingsVault({ defaultTab = 'deposit' }: SavingsVaultPro
       // Convert STT amount to Wei
       const amountWei = parseUnits(amount, 18)
       
-      // For demo purposes, simulate the withdrawal transaction
+      // Simulate transaction time
       await new Promise(resolve => setTimeout(resolve, 2000))
+      
+      // Update simulated balances
+      setSimulatedSavingsBalance(prev => prev - amountWei)
+      setSimulatedWalletDeduction(prev => prev - amountWei)
       
       const mockTxHash = `0x${Math.random().toString(16).substring(2)}${Math.random().toString(16).substring(2)}`
       
@@ -420,7 +440,7 @@ export default function SavingsVault({ defaultTab = 'deposit' }: SavingsVaultPro
       setTimeout(() => {
         refetchAccount()
         refetchBalance()
-      }, 2000)
+      }, 1000)
 
     } catch (error: any) {
       addNotification({
@@ -526,27 +546,51 @@ export default function SavingsVault({ defaultTab = 'deposit' }: SavingsVaultPro
         </nav>
       </div>
 
+      {/* Demo Warning */}
+      <div className="bg-yellow-50 border-b border-yellow-200 px-6 py-4">
+        <div className="flex items-start space-x-2">
+          <div className="flex-shrink-0 w-5 h-5 text-yellow-600 mt-0.5">
+            ⚠️
+          </div>
+          <div className="text-sm">
+            <p className="text-yellow-800 font-medium">Demo Mode - Testnet Simulation</p>
+            <p className="text-yellow-700 mt-1">
+              Deposits and withdrawals are simulated for demo purposes. Your wallet balance changes are temporary and local to this session.
+            </p>
+          </div>
+        </div>
+      </div>
+
       <div className="p-6">
         {/* Stats Overview */}
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-8">
           <div className="bg-gradient-to-r from-blue-50 to-blue-100 p-4 rounded-lg">
             <div className="text-sm text-blue-600 font-medium">Your Balance</div>
             <div className="text-2xl font-bold text-blue-900">
-              {savingsAccount ? formatTokenAmount(savingsAccount.totalDeposited) : '0'} USDC
+              {savingsAccount ? formatUnits(savingsAccount.totalDeposited, 18) : '0'} STT
+            </div>
+            <div className="text-xs text-blue-600 mt-1">
+              ~{savingsAccount ? (parseFloat(formatUnits(savingsAccount.totalDeposited, 18)) * sttToUsdcRate).toFixed(4) : '0'} USDC
             </div>
           </div>
           
           <div className="bg-gradient-to-r from-green-50 to-green-100 p-4 rounded-lg">
             <div className="text-sm text-green-600 font-medium">Rewards Earned</div>
             <div className="text-2xl font-bold text-green-900">
-              {savingsAccount ? formatTokenAmount(savingsAccount.rewardsEarned) : '0'} USDC
+              {savingsAccount ? formatUnits(savingsAccount.rewardsEarned, 18) : '0'} STT
+            </div>
+            <div className="text-xs text-green-600 mt-1">
+              ~{savingsAccount ? (parseFloat(formatUnits(savingsAccount.rewardsEarned, 18)) * sttToUsdcRate).toFixed(4) : '0'} USDC
             </div>
           </div>
           
           <div className="bg-gradient-to-r from-purple-50 to-purple-100 p-4 rounded-lg">
             <div className="text-sm text-purple-600 font-medium">Pending Rewards</div>
             <div className="text-2xl font-bold text-purple-900">
-              {pendingRewards && typeof pendingRewards === 'bigint' ? formatTokenAmount(pendingRewards) : '0'} USDC
+              {pendingRewards && typeof pendingRewards === 'bigint' ? formatUnits(pendingRewards, 18) : '0'} STT
+            </div>
+            <div className="text-xs text-purple-600 mt-1">
+              ~{pendingRewards && typeof pendingRewards === 'bigint' ? (parseFloat(formatUnits(pendingRewards, 18)) * sttToUsdcRate).toFixed(4) : '0'} USDC
             </div>
           </div>
           
@@ -713,7 +757,7 @@ export default function SavingsVault({ defaultTab = 'deposit' }: SavingsVaultPro
               <h4 className="font-medium text-blue-800 mb-2">Token Conversion</h4>
               <p className="text-blue-600 text-sm">
                 Convert your STT to preferred stablecoins or manage your token portfolio. 
-                The savings vault now accepts STT directly, but you can still convert to stablecoins for other purposes.
+                The deposit feature automatically converts STT to USDC, but you can use this tool for other conversions.
               </p>
             </div>
             

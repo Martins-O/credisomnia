@@ -1,7 +1,7 @@
 {
-  "name": "credisomnia-frontend",
+  "name": "credisom-frontend",
   "version": "1.0.0",
-  "description": "Credisomnia DeFi Platform Frontend",
+  "description": "CrediSom DeFi Platform Frontend",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -77,7 +77,7 @@
     "ethereum",
     "somnia"
   ],
-  "author": "Credisomnia Team",
+  "author": "CrediSom Team",
   "license": "MIT",
   "main": "next.config.js",
   "directories": {

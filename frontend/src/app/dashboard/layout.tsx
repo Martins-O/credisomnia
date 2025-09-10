@@ -55,7 +55,7 @@ export default function DashboardLayout({
           </p>
           <Link
             href="/"
-            className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 font-medium"
+            className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 font-medium min-h-[44px] flex items-center justify-center touch-manipulation"
           >
             Go Home
           </Link>
@@ -75,7 +75,7 @@ export default function DashboardLayout({
             <div className="absolute top-0 right-0 -mr-12 pt-2">
               <button
                 type="button"
-                className="ml-1 flex items-center justify-center h-10 w-10 rounded-full focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white"
+                className="ml-1 flex items-center justify-center h-12 w-12 rounded-full focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white touch-manipulation"
                 onClick={() => setSidebarOpen(false)}
               >
                 <XMarkIcon className="h-6 w-6 text-white" />
@@ -99,7 +99,7 @@ export default function DashboardLayout({
                         isActive 
                           ? 'bg-blue-100 text-blue-900' 
                           : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                      } group flex items-center px-2 py-2 text-sm font-medium rounded-md`}
+                      } group flex items-center px-3 py-3 text-sm font-medium rounded-md min-h-[44px] touch-manipulation`}
                       onClick={() => setSidebarOpen(false)}
                     >
                       <item.icon
@@ -136,7 +136,7 @@ export default function DashboardLayout({
                         isActive 
                           ? 'bg-blue-100 text-blue-900' 
                           : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                      } group flex items-center px-2 py-2 text-sm font-medium rounded-md`}
+                      } group flex items-center px-3 py-3 text-sm font-medium rounded-md min-h-[44px] touch-manipulation`}
                     >
                       <item.icon
                         className={`${
@@ -176,7 +176,7 @@ export default function DashboardLayout({
           <div className="sticky top-0 z-10 md:hidden pl-1 pt-1 sm:pl-3 sm:pt-3 bg-gray-50">
             <button
               type="button"
-              className="-ml-0.5 -mt-0.5 h-12 w-12 inline-flex items-center justify-center rounded-md text-gray-500 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500"
+              className="-ml-0.5 -mt-0.5 h-12 w-12 inline-flex items-center justify-center rounded-md text-gray-500 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500 touch-manipulation"
               onClick={() => setSidebarOpen(true)}
             >
               <Bars3Icon className="h-6 w-6" />

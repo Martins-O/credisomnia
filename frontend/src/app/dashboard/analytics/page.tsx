@@ -7,13 +7,13 @@ import {
   ArrowTrendingDownIcon,
   CalendarIcon
 } from '@heroicons/react/24/outline'
-import { useCredisomnia } from '@/hooks/useCredisomnia'
+import { useCrediSom } from '@/hooks/useCrediSom'
 import { useLendingPool, formatTokenAmount } from '@/lib/hooks/useContracts'
 import { useDefiStore } from '@/lib/store/defi-store'
 
 export default function AnalyticsPage() {
   const { address } = useAccount()
-  const { creditScore, creditProfile, savingsBalance, formatBalance } = useCredisomnia()
+  const { creditScore, creditProfile, savingsBalance, formatBalance } = useCrediSom()
   const { userLoans } = useDefiStore()
 
   // Check if wallet is connected

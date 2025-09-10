@@ -152,64 +152,56 @@ export function useTokenConversion() {
     })
   }, [])
 
-  // Execute conversion
+  // Execute conversion - Demo mode
   const executeConversion = useCallback(async (quote: ConversionQuote): Promise<string> => {
     if (!address) throw new Error('Wallet not connected')
 
     setConversionState(prev => ({ ...prev, isLoading: true, error: null }))
 
     try {
-      // Mock conversion transaction - in reality, this would interact with a DEX or AMM
-      const inputAmountWei = parseUnits(quote.inputAmount, conversionState.fromToken.decimals)
-      
-      // For demo purposes, we'll simulate different conversion scenarios
-      let hash: string
-
-      if (conversionState.fromToken.symbol === 'STT') {
-        // Converting from native STT to stablecoin
-        // This would typically involve a DEX swap or deposit into a conversion contract
-        hash = await mockConversionTransaction('swapSTTForStablecoin', {
-          fromToken: conversionState.fromToken.address,
-          toToken: conversionState.toToken.address,
-          amount: inputAmountWei,
-          minimumOut: parseUnits(quote.minimumReceived, conversionState.toToken.decimals),
-        })
-      } else {
-        // Converting from stablecoin to STT or between stablecoins
-        hash = await mockConversionTransaction('swapTokens', {
-          fromToken: conversionState.fromToken.address,
-          toToken: conversionState.toToken.address,
-          amount: inputAmountWei,
-          minimumOut: parseUnits(quote.minimumReceived, conversionState.toToken.decimals),
-        })
-      }
-
       addNotification({
         type: 'info',
-        title: 'Demo Conversion Completed',
-        description: `Simulated conversion of ${quote.inputAmount} ${conversionState.fromToken.symbol} to ${quote.outputAmount} ${conversionState.toToken.symbol}. Note: This is a testnet demo - balances will refresh shortly.`,
+        title: 'Token Conversion',
+        description: `Converting ${quote.inputAmount} ${conversionState.fromToken.symbol} to ${quote.outputAmount} ${conversionState.toToken.symbol}...`,
       })
 
-      // Force refresh of balance hooks after simulated conversion
-      setTimeout(() => {
-        // This will trigger a re-fetch of the balance hooks
-        if (typeof window !== 'undefined') {
-          window.dispatchEvent(new CustomEvent('refreshBalances'))
-        }
-      }, 2000)
+      // Simulate transaction time
+      await new Promise(resolve => setTimeout(resolve, 2000))
 
-      return hash
+      // Generate mock transaction hash
+      const mockTxHash = `0x${Math.random().toString(16).substring(2)}${Math.random().toString(16).substring(2)}`
+
+      addNotification({
+        type: 'success',
+        title: 'Conversion Completed',
+        description: `Successfully converted ${quote.inputAmount} ${conversionState.fromToken.symbol} to ${quote.outputAmount} ${conversionState.toToken.symbol}`,
+      })
+
+      // Dispatch balance refresh event
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('refreshBalances'))
+      }
+
+      setConversionState(prev => ({ 
+        ...prev, 
+        isLoading: false,
+        inputAmount: '',
+        quote: null
+      }))
+
+      return mockTxHash
+
     } catch (error: any) {
+      const errorMessage = error instanceof Error ? error.message : 'Conversion failed'
+      setConversionState(prev => ({ ...prev, error: errorMessage, isLoading: false }))
       addNotification({
         type: 'error',
         title: 'Conversion Failed',
-        description: error?.message || 'Transaction failed',
+        description: errorMessage,
       })
       throw error
-    } finally {
-      setConversionState(prev => ({ ...prev, isLoading: false }))
     }
-  }, [address, addNotification, conversionState.fromToken, conversionState.toToken, mockConversionTransaction])
+  }, [address, addNotification, conversionState.fromToken, conversionState.toToken])
 
   // Update conversion state
   const updateConversion = useCallback((updates: Partial<ConversionState>) => {

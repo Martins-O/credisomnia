@@ -15,7 +15,7 @@ export interface CreditProfile {
   isActive: boolean;
 }
 
-export function useCredisomnia() {
+export function useCrediSom() {
   const { address, isConnected } = useAccount();
   const [isLoading, setIsLoading] = useState(false);
   const { mintCreditNFT: mintNFT } = useContracts();
