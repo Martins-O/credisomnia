@@ -1,13 +1,3 @@
-# 🏆 Credisomnia DeFi Platform
-
-> **Revolutionary DeFi Credit Scoring & Lending Platform**  
-> *Building the future of decentralized finance with soulbound credit identity*
-
-[![Security Audit](https://img.shields.io/badge/Security-Audited-green)](docs/SECURITY_AUDIT.md)
-[![Test Coverage](https://img.shields.io/badge/Coverage->95%25-brightgreen)](docs/TESTING.md)
-[![Deployment](https://img.shields.io/badge/Deploy-Somnia%20Testnet-blue)](deployments/)
-[![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
-
 ## 🌟 **What is Credisomnia?**
 
 Credisomnia is a revolutionary DeFi platform that bridges traditional credit scoring with cutting-edge blockchain technology. Built on Somnia's high-performance blockchain, it offers **real-time credit scoring**, **dynamic lending rates**, and **soulbound NFT-based credit identity** that evolves with your DeFi activities.
