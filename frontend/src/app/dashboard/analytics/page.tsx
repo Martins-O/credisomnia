@@ -35,30 +35,43 @@ export default function AnalyticsPage() {
   
   // Generate historical data based on current credit profile
   const generateHistoricalData = () => {
-    const currentScore = creditScore ? Number(creditScore) : 600
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun']
-    const scoreHistory = months.map((month, index) => ({
-      month,
-      score: Math.max(300, currentScore - (months.length - index - 1) * 15)
-    }))
+    const currentScore = creditScore ? Number(creditScore) : 745 // Demo default
+    const months = ['Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'Jan']
+    
+    // Generate more realistic score progression
+    const scoreHistory = months.map((month, index) => {
+      const baseScore = Math.max(300, currentScore - (months.length - index - 1) * 12)
+      // Add some variance to make it look more realistic
+      const variance = (Math.sin(index * 0.5) * 8) + (Math.random() * 6 - 3)
+      return {
+        month,
+        score: Math.round(Math.max(300, Math.min(850, baseScore + variance)))
+      }
+    })
 
-    const savingsBalance_num = savingsBalance ? Number(formatBalance(savingsBalance as bigint)) : 0
-    const savingsHistory = months.map((month, index) => ({
-      month,
-      balance: Math.max(0, savingsBalance_num - (months.length - index - 1) * (savingsBalance_num / 6))
-    }))
+    const savingsBalance_num = savingsBalance ? Number(formatBalance(savingsBalance as bigint)) : 1250.75 // Demo default
+    const savingsHistory = months.map((month, index) => {
+      const baseBalance = Math.max(0, savingsBalance_num - (months.length - index - 1) * (savingsBalance_num / 8))
+      // Add compound growth effect
+      const growthRate = 0.008 // ~0.8% monthly growth
+      const compoundedBalance = baseBalance * Math.pow(1 + growthRate, index)
+      return {
+        month,
+        balance: Math.round(compoundedBalance * 100) / 100
+      }
+    })
 
     return { scoreHistory, savingsHistory }
   }
 
   const { scoreHistory, savingsHistory } = generateHistoricalData()
-  const currentScore = creditScore ? Number(creditScore) : 600
+  const currentScore = creditScore ? Number(creditScore) : 745 // Use same demo default
   const previousScore = scoreHistory[scoreHistory.length - 2]?.score || currentScore - 30
   const scoreChange = currentScore - previousScore
   const isScoreImproving = scoreChange > 0
 
-  // Process loan data safely
-  const loanHistory = userLoans ? userLoans.map((loan) => {
+  // Process loan data safely with demo fallback
+  const loanHistory = userLoans && userLoans.length > 0 ? userLoans.map((loan) => {
     try {
       return {
         date: new Date(Number(loan.startTimestamp || 0n) * 1000).toISOString().split('T')[0],
@@ -75,7 +88,33 @@ export default function AnalyticsPage() {
         onTime: true
       }
     }
-  }).filter(loan => loan.amount > 0) : []
+  }).filter(loan => loan.amount > 0) : [
+    // Demo loan history data
+    {
+      date: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 90 days ago
+      amount: 1000,
+      status: 'Repaid',
+      onTime: true
+    },
+    {
+      date: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 60 days ago
+      amount: 1500,
+      status: 'Repaid',
+      onTime: true
+    },
+    {
+      date: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 30 days ago
+      amount: 2000,
+      status: 'Active',
+      onTime: true
+    },
+    {
+      date: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 15 days ago
+      amount: 800,
+      status: 'Active',
+      onTime: true
+    }
+  ]
 
   const onTimeRate = loanHistory.length > 0 ? 
     (loanHistory.filter(loan => loan.onTime).length / loanHistory.length * 100) : 100

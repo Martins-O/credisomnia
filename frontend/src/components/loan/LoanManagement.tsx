@@ -5,6 +5,7 @@ import { useAccount } from 'wagmi'
 import { formatUnits, parseUnits } from 'viem'
 import { useLendingPool, useCreditOracle, formatTokenAmount, parseTokenAmount, calculateHealthFactor } from '@/lib/hooks/useContracts'
 import { useDefiStore, useNotificationStore } from '@/lib/store/defi-store'
+import { useCrediSom } from '@/hooks/useCrediSom'
 
 interface BorrowFormData {
   amount: string
@@ -24,7 +25,8 @@ interface LoanManagementProps {
 export default function LoanManagement({ defaultTab = 'borrow' }: LoanManagementProps) {
   const { address } = useAccount()
   const { addNotification } = useNotificationStore()
-  const { userLoans, creditScore, setUserLoans, setLoading } = useDefiStore()
+  const { userLoans, setUserLoans, setLoading } = useDefiStore()
+  const { creditScore } = useCrediSom() // Get credit score with demo fallback
 
   // Contract hooks
   const lendingPool = useLendingPool()
@@ -55,12 +57,65 @@ export default function LoanManagement({ defaultTab = 'borrow' }: LoanManagement
     borrowForm.amount ? parseTokenAmount(borrowForm.amount) : 0n
   )
 
-  // Update store when loans data changes
+  // Demo data for development - populate with sample loans
   useEffect(() => {
-    if (loansData && Array.isArray(loansData)) {
+    // Only use demo data if no real data is available
+    if (!loansData || !Array.isArray(loansData) || loansData.length === 0) {
+      const demoLoans = [
+        {
+          loanId: 101n,
+          borrower: address!,
+          principalAmount: parseTokenAmount('1000'),
+          outstandingAmount: parseTokenAmount('1050'),
+          collateralAmount: parseTokenAmount('1500'),
+          interestRate: 500n, // 5%
+          startTimestamp: BigInt(Math.floor(Date.now() / 1000) - 86400 * 20), // 20 days ago
+          dueTimestamp: BigInt(Math.floor(Date.now() / 1000) - 86400 * 20 + 86400 * 60), // Due in 40 days
+          lastPaymentTime: BigInt(Math.floor(Date.now() / 1000) - 86400 * 20),
+          status: 0 // Active
+        },
+        {
+          loanId: 102n,
+          borrower: address!,
+          principalAmount: parseTokenAmount('500'),
+          outstandingAmount: parseTokenAmount('520'),
+          collateralAmount: parseTokenAmount('800'),
+          interestRate: 450n, // 4.5%
+          startTimestamp: BigInt(Math.floor(Date.now() / 1000) - 86400 * 10), // 10 days ago
+          dueTimestamp: BigInt(Math.floor(Date.now() / 1000) - 86400 * 10 + 86400 * 30), // Due in 20 days
+          lastPaymentTime: BigInt(Math.floor(Date.now() / 1000) - 86400 * 10),
+          status: 0 // Active
+        },
+        {
+          loanId: 103n,
+          borrower: address!,
+          principalAmount: parseTokenAmount('2000'),
+          outstandingAmount: 0n, // Fully repaid
+          collateralAmount: parseTokenAmount('3000'),
+          interestRate: 600n, // 6%
+          startTimestamp: BigInt(Math.floor(Date.now() / 1000) - 86400 * 90), // 90 days ago
+          dueTimestamp: BigInt(Math.floor(Date.now() / 1000) - 86400 * 90 + 86400 * 60), // Was due 30 days ago
+          lastPaymentTime: BigInt(Math.floor(Date.now() / 1000) - 86400 * 30), // Repaid 30 days ago
+          status: 1 // Repaid
+        },
+        {
+          loanId: 104n,
+          borrower: address!,
+          principalAmount: parseTokenAmount('1500'),
+          outstandingAmount: parseTokenAmount('1600'),
+          collateralAmount: parseTokenAmount('1000'), // Low health factor
+          interestRate: 700n, // 7%
+          startTimestamp: BigInt(Math.floor(Date.now() / 1000) - 86400 * 45), // 45 days ago
+          dueTimestamp: BigInt(Math.floor(Date.now() / 1000) - 86400 * 45 + 86400 * 60), // Due in 15 days
+          lastPaymentTime: BigInt(Math.floor(Date.now() / 1000) - 86400 * 45),
+          status: 0 // Active but risky
+        }
+      ]
+      setUserLoans(demoLoans)
+    } else if (loansData && Array.isArray(loansData)) {
       setUserLoans(loansData)
     }
-  }, [loansData, setUserLoans])
+  }, [loansData, setUserLoans, address])
 
   // Handle borrow form submission
   const handleBorrow = async (e: React.FormEvent) => {
@@ -238,9 +293,13 @@ export default function LoanManagement({ defaultTab = 'borrow' }: LoanManagement
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="0.00"
                 />
-                {eligibilityCheck && !eligibilityCheck[0] && (
+                {(eligibilityCheck && !eligibilityCheck[0]) ? (
                   <p className="mt-1 text-sm text-red-600">{eligibilityCheck[1]}</p>
-                )}
+                ) : borrowForm.amount && parseFloat(borrowForm.amount) > 0 && !eligibilityCheck ? (
+                  <p className="mt-1 text-sm text-green-600">
+                    ✓ Eligible for loan based on credit score: {Number(creditScore || 0)}
+                  </p>
+                ) : null}
               </div>
 
               <div>
@@ -255,11 +314,15 @@ export default function LoanManagement({ defaultTab = 'borrow' }: LoanManagement
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="0.00"
                 />
-                {collateralRequired && (
+                {collateralRequired ? (
                   <p className="mt-1 text-sm text-gray-500">
                     Required: {formatTokenAmount(collateralRequired)} COL
                   </p>
-                )}
+                ) : borrowForm.amount && parseFloat(borrowForm.amount) > 0 ? (
+                  <p className="mt-1 text-sm text-gray-500">
+                    Required: {formatTokenAmount(parseTokenAmount((parseFloat(borrowForm.amount) * 1.5).toString()))} COL (150% LTV)
+                  </p>
+                ) : null}
               </div>
 
               <div>
@@ -285,10 +348,10 @@ export default function LoanManagement({ defaultTab = 'borrow' }: LoanManagement
                 </label>
                 <div className="px-3 py-2 bg-gray-50 border border-gray-300 rounded-md">
                   <span className={`font-medium ${
-                    creditScore >= 750 ? 'text-green-600' :
-                    creditScore >= 600 ? 'text-yellow-600' : 'text-red-600'
+                    Number(creditScore || 0) >= 750 ? 'text-green-600' :
+                    Number(creditScore || 0) >= 600 ? 'text-yellow-600' : 'text-red-600'
                   }`}>
-                    {creditScore}
+                    {Number(creditScore || 0)}
                   </span>
                 </div>
               </div>
@@ -296,7 +359,7 @@ export default function LoanManagement({ defaultTab = 'borrow' }: LoanManagement
 
             <button
               type="submit"
-              disabled={isSubmitting || !eligibilityCheck?.[0]}
+              disabled={isSubmitting || (eligibilityCheck && !eligibilityCheck[0]) || !borrowForm.amount || !borrowForm.collateralAmount}
               className="w-full bg-blue-600 text-white py-3 px-4 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
             >
               {isSubmitting ? 'Processing...' : 'Request Loan'}

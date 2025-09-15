@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useAccount } from 'wagmi'
 import { Address } from 'viem'
-import { useLendingPool, calculateHealthFactor, formatTokenAmount } from '@/lib/hooks/useContracts'
+import { useLendingPool, calculateHealthFactor, formatTokenAmount, parseTokenAmount } from '@/lib/hooks/useContracts'
 import { useDefiStore, useNotificationStore } from '@/lib/store/defi-store'
 import { LoanDetails } from '@/lib/hooks/useContracts'
 
@@ -64,11 +64,84 @@ export default function LiquidationMonitor() {
     // 2. Using event logs to track all loans
     // 3. Using a backend service/subgraph to index loan data
     
-    // Placeholder for actual implementation - would fetch from contract/API
-    const loans: LoanDetails[] = []
+    // Demo data for development/demonstration purposes
+    const demoLoans: LoanDetails[] = [
+      {
+        loanId: 1n,
+        borrower: '0x1234567890123456789012345678901234567890' as Address,
+        principalAmount: parseTokenAmount('1000'),
+        outstandingAmount: parseTokenAmount('1100'),
+        collateralAmount: parseTokenAmount('800'), // Undercollateralized - liquidatable
+        interestRate: 500n, // 5%
+        startTimestamp: BigInt(Math.floor(Date.now() / 1000) - 86400 * 30), // 30 days ago
+        dueTimestamp: BigInt(Math.floor(Date.now() / 1000) - 86400 * 30 + 86400 * 60), // Due in 30 days
+        lastPaymentTime: BigInt(Math.floor(Date.now() / 1000) - 86400 * 30),
+        status: 0 // Active
+      },
+      {
+        loanId: 2n,
+        borrower: '0x2345678901234567890123456789012345678901' as Address,
+        principalAmount: parseTokenAmount('2500'),
+        outstandingAmount: parseTokenAmount('2650'),
+        collateralAmount: parseTokenAmount('1500'), // Barely undercollateralized
+        interestRate: 600n, // 6%
+        startTimestamp: BigInt(Math.floor(Date.now() / 1000) - 86400 * 45), // 45 days ago
+        dueTimestamp: BigInt(Math.floor(Date.now() / 1000) - 86400 * 45 + 86400 * 90), // Due in 45 days
+        lastPaymentTime: BigInt(Math.floor(Date.now() / 1000) - 86400 * 45),
+        status: 0 // Active
+      },
+      {
+        loanId: 3n,
+        borrower: '0x3456789012345678901234567890123456789012' as Address,
+        principalAmount: parseTokenAmount('500'),
+        outstandingAmount: parseTokenAmount('520'),
+        collateralAmount: parseTokenAmount('750'), // Well collateralized
+        interestRate: 400n, // 4%
+        startTimestamp: BigInt(Math.floor(Date.now() / 1000) - 86400 * 15), // 15 days ago
+        dueTimestamp: BigInt(Math.floor(Date.now() / 1000) - 86400 * 15 + 86400 * 30), // Due in 15 days
+        lastPaymentTime: BigInt(Math.floor(Date.now() / 1000) - 86400 * 15),
+        status: 0 // Active
+      },
+      {
+        loanId: 4n,
+        borrower: '0x4567890123456789012345678901234567890123' as Address,
+        principalAmount: parseTokenAmount('3000'),
+        outstandingAmount: parseTokenAmount('3200'),
+        collateralAmount: parseTokenAmount('2800'), // Very close to liquidation
+        interestRate: 700n, // 7%
+        startTimestamp: BigInt(Math.floor(Date.now() / 1000) - 86400 * 60), // 60 days ago
+        dueTimestamp: BigInt(Math.floor(Date.now() / 1000) - 86400 * 60 + 86400 * 90), // Due in 30 days
+        lastPaymentTime: BigInt(Math.floor(Date.now() / 1000) - 86400 * 60),
+        status: 0 // Active
+      },
+      {
+        loanId: 5n,
+        borrower: '0x5678901234567890123456789012345678901234' as Address,
+        principalAmount: parseTokenAmount('1500'),
+        outstandingAmount: parseTokenAmount('1580'),
+        collateralAmount: parseTokenAmount('1200'), // Liquidatable
+        interestRate: 550n, // 5.5%
+        startTimestamp: BigInt(Math.floor(Date.now() / 1000) - 86400 * 40), // 40 days ago
+        dueTimestamp: BigInt(Math.floor(Date.now() / 1000) - 86400 * 40 + 86400 * 60), // Due in 20 days
+        lastPaymentTime: BigInt(Math.floor(Date.now() / 1000) - 86400 * 40),
+        status: 0 // Active
+      },
+      {
+        loanId: 6n,
+        borrower: '0x6789012345678901234567890123456789012345' as Address,
+        principalAmount: parseTokenAmount('800'),
+        outstandingAmount: parseTokenAmount('820'),
+        collateralAmount: parseTokenAmount('1600'), // Very safe
+        interestRate: 350n, // 3.5%
+        startTimestamp: BigInt(Math.floor(Date.now() / 1000) - 86400 * 10), // 10 days ago
+        dueTimestamp: BigInt(Math.floor(Date.now() / 1000) - 86400 * 10 + 86400 * 180), // Due in 170 days
+        lastPaymentTime: BigInt(Math.floor(Date.now() / 1000) - 86400 * 10),
+        status: 0 // Active
+      }
+    ]
     
-    setAllLoans(loans)
-    setLiquidationTargets(loans.filter(loan => 
+    setAllLoans(demoLoans)
+    setLiquidationTargets(demoLoans.filter(loan => 
       calculateHealthFactor(loan.collateralAmount, loan.outstandingAmount) < 1.0
     ))
   }, [setLiquidationTargets])

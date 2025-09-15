@@ -109,46 +109,92 @@ export function useCrediSom() {
     functionName: 'totalBorrowed',
   });
 
-  // Calculate real metrics from contract data
+  // Calculate real or demo metrics from contract data
   const realData = useMemo(() => {
     const loans = userLoans as Array<any> || [];
     const activeLoans = loans.filter((loan: any) => loan?.status === 0);
     const totalOutstanding = activeLoans.reduce((sum: bigint, loan: any) => sum + (loan?.outstandingAmount || 0n), 0n);
     
-    // Calculate health factor
-    const totalCollateral = activeLoans.reduce((sum: bigint, loan: any) => sum + (loan?.collateralAmount || 0n), 0n);
-    const healthFactor = totalOutstanding > 0n ? 
-      (Number(totalCollateral) * 0.8 / Number(totalOutstanding)) : Infinity;
+    // Check if we have real contract data
+    const hasRealData = loans.length > 0 || (savingsBalance && savingsBalance > 0n) || (creditScore && creditScore > 0n);
     
-    // Find next payment due
-    const nextPayment = activeLoans.reduce((earliest: bigint, loan: any) => {
-      if (!loan?.dueTimestamp) return earliest;
-      return earliest === 0n || loan.dueTimestamp < earliest ? loan.dueTimestamp : earliest;
-    }, 0n);
+    if (hasRealData) {
+      // Use real contract data
+      const totalCollateral = activeLoans.reduce((sum: bigint, loan: any) => sum + (loan?.collateralAmount || 0n), 0n);
+      const healthFactor = totalOutstanding > 0n ? 
+        (Number(totalCollateral) * 0.8 / Number(totalOutstanding)) : Infinity;
+      
+      const nextPayment = activeLoans.reduce((earliest: bigint, loan: any) => {
+        if (!loan?.dueTimestamp) return earliest;
+        return earliest === 0n || loan.dueTimestamp < earliest ? loan.dueTimestamp : earliest;
+      }, 0n);
 
-    // Calculate APY (5% base rate)
-    const baseAPY = 5.0;
-    const utilizationRate = totalSupplied && totalSupplied > 0n ? Number(totalBorrowed || 0n) / Number(totalSupplied) : 0;
-    const dynamicAPY = baseAPY + (utilizationRate * 2); // Add utilization bonus
+      const baseAPY = 5.0;
+      const utilizationRate = totalSupplied && totalSupplied > 0n ? Number(totalBorrowed || 0n) / Number(totalSupplied) : 0;
+      const dynamicAPY = baseAPY + (utilizationRate * 2);
 
-    return {
-      totalLoans: activeLoans.length,
-      activeLiquidations: activeLoans.filter((loan: any) => healthFactor < 1.1).length,
-      totalSaved: savingsBalance && typeof savingsBalance === 'bigint' ? formatBalance(savingsBalance) : '0.00',
-      apy: `${dynamicAPY.toFixed(1)}%`,
-      healthFactor: healthFactor === Infinity ? '∞' : healthFactor.toFixed(2),
-      nextPaymentDue: nextPayment > 0n ? 
-        new Date(Number(nextPayment) * 1000).toLocaleDateString() : 
-        'No active loans'
-    };
-  }, [userLoans, savingsBalance, formatBalance, totalSupplied, totalBorrowed]);
+      return {
+        totalLoans: activeLoans.length,
+        activeLiquidations: activeLoans.filter((loan: any) => healthFactor < 1.1).length,
+        totalSaved: savingsBalance && typeof savingsBalance === 'bigint' ? formatBalance(savingsBalance) : '0.00',
+        apy: `${dynamicAPY.toFixed(1)}%`,
+        healthFactor: healthFactor === Infinity ? '∞' : healthFactor.toFixed(2),
+        nextPaymentDue: nextPayment > 0n ? 
+          new Date(Number(nextPayment) * 1000).toLocaleDateString() : 
+          'No active loans'
+      };
+    } else {
+      // Return demo data for demonstration purposes
+      return {
+        totalLoans: 2,
+        activeLiquidations: 0,
+        totalSaved: '1,250.75',
+        apy: '5.2%',
+        healthFactor: '2.45',
+        nextPaymentDue: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString() // 7 days from now
+      };
+    }
+  }, [userLoans, savingsBalance, formatBalance, totalSupplied, totalBorrowed, creditScore]);
+
+  // Provide demo data when contracts aren't available
+  const demoData = useMemo(() => {
+    const hasRealData = (creditScore && creditScore > 0n) || (savingsBalance && savingsBalance > 0n);
+    
+    if (hasRealData) {
+      return {
+        creditScore,
+        creditProfile,
+        savingsBalance
+      };
+    } else {
+      // Demo values for demonstration
+      const demoCreditScore = BigInt(745);
+      const demoSavingsBalance = BigInt('1250750000000000000000'); // 1,250.75 STT in wei
+      const demoCreditProfile = {
+        borrower: address || '0x0000000000000000000000000000000000000000',
+        creditScore: demoCreditScore,
+        totalBorrowed: BigInt('2500000000000000000000'), // 2,500 USDC
+        totalRepayments: BigInt('800000000000000000000'), // 800 USDC
+        repaymentStreak: BigInt(8),
+        lastPaymentTime: BigInt(Math.floor(Date.now() / 1000) - 86400 * 15), // 15 days ago
+        defaultCount: BigInt(0),
+        isActive: true
+      };
+      
+      return {
+        creditScore: demoCreditScore,
+        creditProfile: demoCreditProfile as CreditProfile,
+        savingsBalance: demoSavingsBalance
+      };
+    }
+  }, [creditScore, creditProfile, savingsBalance, address]);
 
   return {
-    // Contract data
-    creditScore,
-    creditProfile,
+    // Contract data (with demo fallbacks)
+    creditScore: demoData.creditScore,
+    creditProfile: demoData.creditProfile,
     hasCreditNFT: hasCreditNFT || false,
-    savingsBalance,
+    savingsBalance: demoData.savingsBalance,
     
     // Computed values
     getCreditTier,

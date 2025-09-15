@@ -93,10 +93,12 @@ const features = [
 ];
 
 const tradingPairs = [
-  { name: "STT/USDC", change: "+5.2%", volume: "$1.2M", apr: "8.5%" },
-  { name: "ETH/STT", change: "-2.1%", volume: "$850K", apr: "12.3%" },
-  { name: "BTC/USDC", change: "+1.8%", volume: "$2.1M", apr: "6.7%" },
-  { name: "MATIC/STT", change: "+8.4%", volume: "$650K", apr: "15.2%" },
+  { name: "STT/USDC", change: "+5.2%", volume: "$1.2M", apr: "8.5%", price: "$1.0234", liquidity: "$4.2M" },
+  { name: "ETH/STT", change: "-2.1%", volume: "$850K", apr: "12.3%", price: "$2,421.45", liquidity: "$2.8M" },
+  { name: "BTC/USDC", change: "+1.8%", volume: "$2.1M", apr: "6.7%", price: "$43,127.89", liquidity: "$8.5M" },
+  { name: "MATIC/STT", change: "+8.4%", volume: "$650K", apr: "15.2%", price: "$0.8456", liquidity: "$1.9M" },
+  { name: "SOL/USDC", change: "+3.7%", volume: "$920K", apr: "10.1%", price: "$98.23", liquidity: "$3.1M" },
+  { name: "AVAX/STT", change: "-1.3%", volume: "$430K", apr: "14.8%", price: "$28.97", liquidity: "$1.2M" },
 ];
 
 export default function TradingPage() {
@@ -139,7 +141,7 @@ export default function TradingPage() {
                   Live on Somnia Network
                 </div>
               </div>
-              <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {tradingPairs.map((pair, index) => (
                   <motion.div
                     key={pair.name}
@@ -155,6 +157,10 @@ export default function TradingPage() {
                     </div>
                     <div className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
                       <div className="flex justify-between">
+                        <span>Price:</span>
+                        <span className="font-medium text-gray-900 dark:text-white">{pair.price}</span>
+                      </div>
+                      <div className="flex justify-between">
                         <span>24h Change:</span>
                         <span className={`font-medium ${
                           pair.change.startsWith('+') ? 'text-green-500' : 'text-red-500'
@@ -165,6 +171,10 @@ export default function TradingPage() {
                       <div className="flex justify-between">
                         <span>Volume:</span>
                         <span className="font-medium text-gray-900 dark:text-white">{pair.volume}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Liquidity:</span>
+                        <span className="font-medium text-blue-600">{pair.liquidity}</span>
                       </div>
                       <div className="flex justify-between">
                         <span>APR:</span>
