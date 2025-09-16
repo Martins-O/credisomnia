@@ -26,6 +26,7 @@ export default function LiquidationMonitor() {
   const [isLiquidating, setIsLiquidating] = useState(false)
   const [autoRefresh, setAutoRefresh] = useState(true)
   const [refreshInterval, setRefreshInterval] = useState<NodeJS.Timeout | null>(null)
+  const [isMounted, setIsMounted] = useState(true)
 
   // Fetch all loans for liquidation monitoring
   // Note: In a real application, you'd have an endpoint or event logs to get all loans
@@ -58,6 +59,9 @@ export default function LiquidationMonitor() {
 
   // Mock function to refresh liquidation data
   const refreshLiquidationData = useCallback(async () => {
+    // Check if component is still mounted before updating state
+    if (!isMounted) return;
+    
     // TODO: Implement actual loan fetching from contract events or indexer
     // For now, this would require either:
     // 1. Adding a getAllLoans function to the contract
@@ -140,18 +144,23 @@ export default function LiquidationMonitor() {
       }
     ]
     
-    setAllLoans(demoLoans)
-    setLiquidationTargets(demoLoans.filter(loan => 
-      calculateHealthFactor(loan.collateralAmount, loan.outstandingAmount) < 1.0
-    ))
-  }, [setLiquidationTargets])
+    // Only update state if component is still mounted
+    if (isMounted) {
+      setAllLoans(demoLoans)
+      setLiquidationTargets(demoLoans.filter(loan => 
+        calculateHealthFactor(loan.collateralAmount, loan.outstandingAmount) < 1.0
+      ))
+    }
+  }, [setLiquidationTargets, isMounted])
 
   // Auto-refresh functionality
   useEffect(() => {
-    if (autoRefresh) {
+    if (autoRefresh && isMounted) {
       const interval = setInterval(() => {
-        // Refresh liquidation data
-        refreshLiquidationData()
+        // Only refresh if component is still mounted
+        if (isMounted) {
+          refreshLiquidationData()
+        }
       }, 30000) // Refresh every 30 seconds
 
       setRefreshInterval(interval)
@@ -165,7 +174,17 @@ export default function LiquidationMonitor() {
         setRefreshInterval(null)
       }
     }
-  }, [autoRefresh, refreshInterval, refreshLiquidationData])
+  }, [autoRefresh, isMounted, refreshLiquidationData])
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      setIsMounted(false)
+      if (refreshInterval) {
+        clearInterval(refreshInterval)
+      }
+    }
+  }, [])
 
   // Initialize data
   useEffect(() => {
@@ -174,7 +193,7 @@ export default function LiquidationMonitor() {
 
   // Handle liquidation
   const handleLiquidate = async (loan: LiquidationCandidate) => {
-    if (!address || isLiquidating) return
+    if (!address || isLiquidating || !isMounted) return
 
     setIsLiquidating(true)
     setLoading(true)
@@ -182,26 +201,34 @@ export default function LiquidationMonitor() {
     try {
       const hash = await lendingPool.liquidate(loan.loanId)
       
-      addNotification({
-        type: 'success',
-        title: 'Liquidation Submitted',
-        description: `Liquidating loan #${loan.loanId.toString()} - Reward: ${formatTokenAmount(loan.liquidationReward)} COL`,
-      })
+      if (isMounted) {
+        addNotification({
+          type: 'success',
+          title: 'Liquidation Submitted',
+          description: `Liquidating loan #${loan.loanId.toString()} - Reward: ${formatTokenAmount(loan.liquidationReward)} COL`,
+        })
 
-      // Refresh data after transaction
-      setTimeout(() => {
-        refreshLiquidationData()
-      }, 5000)
+        // Refresh data after transaction only if component is still mounted
+        setTimeout(() => {
+          if (isMounted) {
+            refreshLiquidationData()
+          }
+        }, 5000)
+      }
 
     } catch (error: any) {
-      addNotification({
-        type: 'error',
-        title: 'Liquidation Failed',
-        description: error?.message || 'Transaction failed',
-      })
+      if (isMounted) {
+        addNotification({
+          type: 'error',
+          title: 'Liquidation Failed',
+          description: error?.message || 'Transaction failed',
+        })
+      }
     } finally {
-      setIsLiquidating(false)
-      setLoading(false)
+      if (isMounted) {
+        setIsLiquidating(false)
+        setLoading(false)
+      }
     }
   }
 

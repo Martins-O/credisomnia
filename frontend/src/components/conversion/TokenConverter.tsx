@@ -87,7 +87,10 @@ export default function TokenConverter() {
 
   // Get quote when input changes
   useEffect(() => {
+    let isMounted = true
     const debounceTimer = setTimeout(async () => {
+      if (!isMounted) return
+      
       if (conversionState.inputAmount && parseFloat(conversionState.inputAmount) > 0) {
         try {
           const quote = await getQuote(
@@ -96,16 +99,25 @@ export default function TokenConverter() {
             conversionState.inputAmount,
             slippage
           )
-          updateConversion({ quote })
+          if (isMounted) {
+            updateConversion({ quote })
+          }
         } catch (error: any) {
-          updateConversion({ error: error.message, quote: null })
+          if (isMounted) {
+            updateConversion({ error: error.message, quote: null })
+          }
         }
       } else {
-        updateConversion({ quote: null, error: null })
+        if (isMounted) {
+          updateConversion({ quote: null, error: null })
+        }
       }
     }, 500)
 
-    return () => clearTimeout(debounceTimer)
+    return () => {
+      isMounted = false
+      clearTimeout(debounceTimer)
+    }
   }, [conversionState.inputAmount, conversionState.fromToken, conversionState.toToken, slippage, getQuote, updateConversion])
 
   const handleExecuteConversion = useCallback(async () => {

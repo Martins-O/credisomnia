@@ -152,8 +152,11 @@ export default function LoanManagement({ defaultTab = 'borrow' }: LoanManagement
       setBorrowForm({ amount: '', duration: '30', collateralAmount: '' })
       
       // Refresh data after transaction
+      let isMounted = true
       setTimeout(() => {
-        refetchLoans()
+        if (isMounted) {
+          refetchLoans()
+        }
       }, 3000)
 
     } catch (error: any) {
@@ -200,8 +203,11 @@ export default function LoanManagement({ defaultTab = 'borrow' }: LoanManagement
       setRepayForm({ loanId: '', amount: '' })
       
       // Refresh data after transaction
+      let isMounted = true
       setTimeout(() => {
-        refetchLoans()
+        if (isMounted) {
+          refetchLoans()
+        }
       }, 3000)
 
     } catch (error: any) {

@@ -296,8 +296,11 @@ export default function CreditNFTViewer() {
       })
 
       // Refresh NFTs after minting
+      let isMounted = true
       setTimeout(() => {
-        window.location.reload() // Simple refresh for demo
+        if (isMounted) {
+          window.location.reload() // Simple refresh for demo
+        }
       }, 5000)
 
     } catch (error: any) {
@@ -327,8 +330,11 @@ export default function CreditNFTViewer() {
       })
 
       // Refresh NFTs after update
+      let isMounted = true
       setTimeout(() => {
-        window.location.reload() // Simple refresh for demo
+        if (isMounted) {
+          window.location.reload() // Simple refresh for demo
+        }
       }, 5000)
 
     } catch (error: any) {

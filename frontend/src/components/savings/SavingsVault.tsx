@@ -365,9 +365,12 @@ export default function SavingsVault({ defaultTab = 'deposit' }: SavingsVaultPro
       }
       
       // Refresh data after transaction
+      let isMounted = true
       setTimeout(() => {
-        refetchAccount()
-        refetchBalance()
+        if (isMounted) {
+          refetchAccount()
+          refetchBalance()
+        }
       }, 1000)
 
     } catch (error: any) {
@@ -437,9 +440,12 @@ export default function SavingsVault({ defaultTab = 'deposit' }: SavingsVaultPro
       }
       
       // Refresh data after transaction
+      let isMounted = true
       setTimeout(() => {
-        refetchAccount()
-        refetchBalance()
+        if (isMounted) {
+          refetchAccount()
+          refetchBalance()
+        }
       }, 1000)
 
     } catch (error: any) {
@@ -466,8 +472,11 @@ export default function SavingsVault({ defaultTab = 'deposit' }: SavingsVaultPro
     })
 
     // Refresh account data to show updated compounded balance
+    let isMounted = true
     setTimeout(() => {
-      refetchAccount()
+      if (isMounted) {
+        refetchAccount()
+      }
     }, 1000)
   }
 

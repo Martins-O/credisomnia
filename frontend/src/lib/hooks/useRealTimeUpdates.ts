@@ -264,11 +264,17 @@ export function useRealTimeUpdates() {
 
   // Monitor loan health every 5 minutes
   useEffect(() => {
+    let isMounted = true
     const interval = setInterval(() => {
-      monitorLoanHealth()
+      if (isMounted) {
+        monitorLoanHealth()
+      }
     }, 5 * 60 * 1000) // 5 minutes
 
-    return () => clearInterval(interval)
+    return () => {
+      isMounted = false
+      clearInterval(interval)
+    }
   }, [monitorLoanHealth])
 
   // Return utilities for manual refresh
