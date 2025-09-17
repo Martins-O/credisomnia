@@ -45,6 +45,7 @@ export default function LoanManagement({ defaultTab = 'borrow' }: LoanManagement
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
 
+
   // Fetch user loans
   const { data: loansData, refetch: refetchLoans } = lendingPool.useUserLoans(address!)
   const { data: activeLoanIds } = lendingPool.useActiveLoanIds(address!)
@@ -295,7 +296,11 @@ export default function LoanManagement({ defaultTab = 'borrow' }: LoanManagement
                   type="number"
                   step="0.01"
                   value={borrowForm.amount}
-                  onChange={(e) => setBorrowForm({ ...borrowForm, amount: e.target.value })}
+                  onChange={(e) => {
+                    const amount = e.target.value
+                    const collateralAmount = amount ? (parseFloat(amount) * 0.7).toString() : ''
+                    setBorrowForm({ ...borrowForm, amount, collateralAmount })
+                  }}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="0.00"
                 />
@@ -316,19 +321,15 @@ export default function LoanManagement({ defaultTab = 'borrow' }: LoanManagement
                   type="number"
                   step="0.01"
                   value={borrowForm.collateralAmount}
-                  onChange={(e) => setBorrowForm({ ...borrowForm, collateralAmount: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="0.00"
+                  readOnly
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-600 cursor-not-allowed"
+                  placeholder="Auto-calculated (70% of loan amount)"
                 />
-                {collateralRequired ? (
-                  <p className="mt-1 text-sm text-gray-500">
+                {collateralRequired && (
+                  <p className="text-sm text-gray-500 mt-1">
                     Required: {formatTokenAmount(collateralRequired)} COL
                   </p>
-                ) : borrowForm.amount && parseFloat(borrowForm.amount) > 0 ? (
-                  <p className="mt-1 text-sm text-gray-500">
-                    Required: {formatTokenAmount(parseTokenAmount((parseFloat(borrowForm.amount) * 1.5).toString()))} COL (150% LTV)
-                  </p>
-                ) : null}
+                )}
               </div>
 
               <div>
